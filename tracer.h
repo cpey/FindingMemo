@@ -3,6 +3,9 @@
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
 
+#ifndef TRACER_H_
+#define TRACER_H_
+
 typedef struct FUNCTION_NAME {
 	char *name;	
 	int len;
@@ -11,4 +14,6 @@ typedef struct FUNCTION_NAME {
 #define HOOK_IOCTL_NUM 0xFF
 #define HOOK_INSTALL _IOW(HOOK_IOCTL_NUM, 0, FName)
 #define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
+#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, FName)
 
+#endif /* TRACER_H_ */

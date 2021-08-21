@@ -8,11 +8,13 @@
 #include <linux/init.h>
 #include <linux/uaccess.h>
 #include <linux/debugfs.h>
-#include <tracer.h>
+#include "tracer.h"
+#include "hook.h"
 
 MODULE_LICENSE("GPL");
 
 #define DEVICE_NAME "tracer"
+struct dentry *file;
 
 static int device_open(struct inode *inode, struct file *filp)
 {
@@ -22,22 +24,33 @@ static int device_open(struct inode *inode, struct file *filp)
 static ssize_t device_write(struct file *filp, const char *buf,
 	size_t count, loff_t *position)
 {
-	return count;
+	return 0;
 }
 
 static ssize_t device_read(struct file *filp, char *buf,
 	size_t count, loff_t *position)
 {
-	return count;
+	return 0;
 }
 
 static long device_ioctl(struct file *file, unsigned int cmd,
 	unsigned long arg)
 {
+	FName fn = {
+		.name = "load_msg",
+	};
+
+	fn.len = strlen(fn.name);
+
 	switch (cmd) {
+	case HOOK_INIT:
+		hook_init(arg);
+		break;
 	case HOOK_INSTALL:
+		hook_install(&fn);
 		break;
 	case HOOK_REMOVE:
+		hook_remove(&fn);
 		break;
 	default:
 		return -EINVAL;
@@ -59,7 +72,7 @@ static const struct file_operations my_fops = {
 	.release = device_release
 };
 
-static int __init tracer_init()
+static int __init tracer_init(void)
 {
 	pr_info("Memory Tracer");
 	file = debugfs_create_file(DEVICE_NAME, 0200, NULL, NULL, &my_fops);
@@ -67,7 +80,7 @@ static int __init tracer_init()
 	return 0;
 }
 
-static void __exit tracer_exit()
+static void __exit tracer_exit(void)
 {
 	pr_info("Unloaded Memory Tracer");
 }
