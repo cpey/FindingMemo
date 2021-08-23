@@ -11,6 +11,7 @@
 MODULE_LICENSE("GPL");
 
 struct ftrace_ops ops;
+unsigned long addr;
 
 struct msg_msg *(*real_load_msg)(const void __user *src, size_t len);
 unsigned long (*real_kallsyms_lookup_name)(const char *name);
@@ -76,7 +77,7 @@ int hook_remove(FName* fn)
 	return 0;
 }
 
-void hook_init(long kallsyms_addr)
+void hook_init(unsigned long addr)
 {
-	*((unsigned long *) real_kallsyms_lookup_name) = kallsyms_addr;
+	*((unsigned long *) real_kallsyms_lookup_name) = addr;
 }

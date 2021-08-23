@@ -36,6 +36,7 @@ static ssize_t device_read(struct file *filp, char *buf,
 static long device_ioctl(struct file *file, unsigned int cmd,
 	unsigned long arg)
 {
+	void __user *argp = (void __user *)arg;
 	FName fn = {
 		.name = "load_msg",
 	};
@@ -43,9 +44,16 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 	fn.len = strlen(fn.name);
 
 	switch (cmd) {
-	case HOOK_INIT:
-		hook_init(arg);
+
+	case HOOK_INIT: {
+		unsigned long add;
+		if (copy_from_user(&add, argp, sizeof(add))) {
+			return -EFAULT;
+		}
+		pr_info("arg: %lX", add);
+		hook_init(add);
 		break;
+	}
 	case HOOK_INSTALL:
 		hook_install(&fn);
 		break;
@@ -82,6 +90,7 @@ static int __init tracer_init(void)
 
 static void __exit tracer_exit(void)
 {
+	debugfs_remove(file);
 	pr_info("Unloaded Memory Tracer");
 }
 

@@ -27,23 +27,56 @@ typedef struct FUNCTION_NAME {
 #define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
 #define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, FName)
 
+unsigned long get_symbol_addr(char *name)
+{
+    FILE *fd;
+    unsigned long addr;
+    char dummy, sname[512];
+    int ret = 0;
+
+    fd = fopen("/proc/kallsyms", "r");
+    if (!fd) {
+        return 0;
+    }
+
+    while (ret != EOF) {
+        ret = fscanf(fd, "%p %c %s\n", (void **) &addr, &dummy, sname);
+        if (ret && !strcmp(name, sname)) {
+            return addr;
+        }
+    }
+
+    return 0;
+}
+
+
 int main(int argc, char** argv)
 {
 	char device[50];
 	char err_msg[200];
+	char symbol[256];
 	int fd, err, opt;
+	bool symbol_set = false;
 	unsigned long address = 0;
 
-	while ((opt = getopt(argc, argv, "a:")) != -1) {
+	while ((opt = getopt(argc, argv, "s:")) != -1) {
 		switch (opt) {
-			case 'a':
-				address = strtoul(optarg, NULL, 16);
+			case 's':
+				strncpy(symbol, optarg, sizeof(symbol));
+				symbol_set = true;
 				break;
 		}
 	}
 
+	if (!symbol_set) {
+		if (sprintf(symbol, "%s", "load_msg") < 0) {
+			_set_exit_err("Sprintf error");
+		}
+	}
+
+	address = get_symbol_addr(symbol);
 	if (!address) {
-		_set_exit_err_errno(EINVAL, "Missing hooking address");
+		_set_exit_err("Symbol %s not found", symbol);
 	}
 
 	if (sprintf(device, "%s/%s", DEBUGFS, DEVICE) < 0) {
@@ -56,7 +89,7 @@ int main(int argc, char** argv)
 	}
 
 	printf("+ Hook init\n");
-	if (ioctl(fd, HOOK_INIT, NULL) < 0) {
+	if (ioctl(fd, HOOK_INIT, address) < 0) {
 		_set_exit_err("Hook init error: %s", strerror(errno));
 	}
 

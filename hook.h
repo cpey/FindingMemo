@@ -8,6 +8,6 @@
 
 int hook_install(FName*);
 int hook_remove(FName*);
-void hook_init(long);
+void hook_init(unsigned long);
 
 #endif /* HOOK_H_ */
