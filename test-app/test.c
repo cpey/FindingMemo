@@ -22,38 +22,39 @@ typedef struct FUNCTION_NAME {
 	int len;
 } FName;
 
-#define HOOK_IOCTL_NUM 0xFF
+#define HOOK_IOCTL_NUM 'm'
 #define HOOK_INSTALL _IOW(HOOK_IOCTL_NUM, 0, FName)
 #define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
-#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, FName)
+#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, unsigned long)
 
 unsigned long get_symbol_addr(char *name)
 {
-    FILE *fd;
-    unsigned long addr;
-    char dummy, sname[512];
-    int ret = 0;
+	FILE *fd;
+	unsigned long addr;
+	char dummy, sname[512];
+	int ret = 0;
 
-    fd = fopen("/proc/kallsyms", "r");
-    if (!fd) {
-        return 0;
-    }
+	fd = fopen("/proc/kallsyms", "r");
+	if (!fd) {
+		return 0;
+	}
 
-    while (ret != EOF) {
-        ret = fscanf(fd, "%p %c %s\n", (void **) &addr, &dummy, sname);
-        if (ret && !strcmp(name, sname)) {
-            return addr;
-        }
-    }
+	while (ret != EOF) {
+		ret = fscanf(fd, "%p %c %s\n", (void **) &addr, &dummy, sname);
+		if (ret && !strcmp(name, sname)) {
+			printf("+ Found symbol %s at 0x%lx\n", name, addr);
+			return addr;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
 
 int main(int argc, char** argv)
 {
 	char device[50];
-	char err_msg[200];
+	char err_msg[256];
 	char symbol[256];
 	int fd, err, opt;
 	bool symbol_set = false;
@@ -89,7 +90,7 @@ int main(int argc, char** argv)
 	}
 
 	printf("+ Hook init\n");
-	if (ioctl(fd, HOOK_INIT, address) < 0) {
+	if (ioctl(fd, HOOK_INIT, (void *) &address) < 0) {
 		_set_exit_err("Hook init error: %s", strerror(errno));
 	}
 

@@ -44,24 +44,24 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 	fn.len = strlen(fn.name);
 
 	switch (cmd) {
+		case HOOK_INIT: {
+			unsigned long add;
+			if (copy_from_user(&add, argp, sizeof(add))) {
+				return -EFAULT;
+			}
 
-	case HOOK_INIT: {
-		unsigned long add;
-		if (copy_from_user(&add, argp, sizeof(add))) {
-			return -EFAULT;
+			pr_info("arg: %lX\n", add);
+			hook_init(add);
+			break;
 		}
-		pr_info("arg: %lX", add);
-		hook_init(add);
-		break;
-	}
-	case HOOK_INSTALL:
-		hook_install(&fn);
-		break;
-	case HOOK_REMOVE:
-		hook_remove(&fn);
-		break;
-	default:
-		return -EINVAL;
+		case HOOK_INSTALL:
+			hook_install(&fn);
+			break;
+		case HOOK_REMOVE:
+			hook_remove(&fn);
+			break;
+		default:
+			return -EINVAL;
 	}
 	return 0;
 }
@@ -82,7 +82,7 @@ static const struct file_operations my_fops = {
 
 static int __init tracer_init(void)
 {
-	pr_info("Memory Tracer");
+	pr_info("Memory Tracer\n");
 	file = debugfs_create_file(DEVICE_NAME, 0200, NULL, NULL, &my_fops);
 
 	return 0;
@@ -91,7 +91,7 @@ static int __init tracer_init(void)
 static void __exit tracer_exit(void)
 {
 	debugfs_remove(file);
-	pr_info("Unloaded Memory Tracer");
+	pr_info("Unloaded Memory Tracer\n");
 }
 
 module_init(tracer_init);

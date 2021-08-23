@@ -11,9 +11,9 @@ typedef struct FUNCTION_NAME {
 	int len;
 } FName;
 
-#define HOOK_IOCTL_NUM 0xFF
+#define HOOK_IOCTL_NUM 'm'
 #define HOOK_INSTALL _IOW(HOOK_IOCTL_NUM, 0, FName)
 #define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
-#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, __u64)
+#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, unsigned long)
 
 #endif /* TRACER_H_ */
