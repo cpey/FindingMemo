@@ -14,7 +14,6 @@ struct ftrace_ops ops;
 unsigned long addr;
 
 struct msg_msg *(*real_load_msg)(const void __user *src, size_t len);
-unsigned long (*real_kallsyms_lookup_name)(const char *name);
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs);
@@ -31,7 +30,7 @@ struct msg_msg *wr_load_msg(const void __user *src, size_t len)
 	struct msg_msg *msg;
 
 	pr_info("load_msg()");
-	msg = real_load_msg(src, len);
+	msg = (*real_load_msg)(src, len);
 	pr_info("load_msg() result: %p", msg);
 
 	return msg;
@@ -48,7 +47,6 @@ int hook_install(FName* fn)
 {
 	int err; 
 
-	*((unsigned long*) real_load_msg) = real_kallsyms_lookup_name(fn->name);
 	set_ops();
 	err = register_ftrace_function(&ops);
 	if (err)
@@ -79,5 +77,6 @@ int hook_remove(FName* fn)
 
 void hook_init(unsigned long addr)
 {
-	*((unsigned long *) real_kallsyms_lookup_name) = addr;
+	// Since kallsyms_lookup_name is no longer exported
+	real_load_msg = (void *) &addr;
 }
