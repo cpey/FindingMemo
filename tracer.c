@@ -50,15 +50,21 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 				return -EFAULT;
 			}
 
-			pr_info("arg: %lX\n", add);
+			pr_info("Address to hook: %lX\n", add);
 			hook_init(add);
 			break;
 		}
-		case HOOK_INSTALL:
-			hook_install(&fn);
+		case HOOK_INSTALL: {
+			int err;
+			err = hook_install(&fn);
+			if (err < 0)
+				return err;
+			pr_info("Installed hook\n");
 			break;
+		}
 		case HOOK_REMOVE:
 			hook_remove(&fn);
+			pr_info("Removed hook\n");
 			break;
 		default:
 			return -EINVAL;

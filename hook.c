@@ -10,7 +10,7 @@
 
 MODULE_LICENSE("GPL");
 
-struct ftrace_ops ops;
+static struct ftrace_ops ops __read_mostly;
 unsigned long addr;
 
 struct msg_msg *(*real_load_msg)(const void __user *src, size_t len);
@@ -21,7 +21,9 @@ static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 void set_ops(void)
 {
 	ops.func = hook_callback;
-	ops.flags = FTRACE_OPS_FL_SAVE_REGS | FTRACE_OPS_FL_IPMODIFY;
+	ops.flags = FTRACE_OPS_FL_SAVE_REGS 
+				| FTRACE_OPS_FL_SAVE_REGS_IF_SUPPORTED
+				| FTRACE_OPS_FL_IPMODIFY;
 }
 
 // Wrapper to load_msg
@@ -29,9 +31,9 @@ struct msg_msg *wr_load_msg(const void __user *src, size_t len)
 {
 	struct msg_msg *msg;
 
-	pr_info("load_msg()");
+	pr_info("+ load_msg()\n");
 	msg = (*real_load_msg)(src, len);
-	pr_info("load_msg() result: %p", msg);
+	pr_info("result: %p\n", msg);
 
 	return msg;
 }
@@ -45,15 +47,15 @@ static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 
 int hook_install(FName* fn)
 {
-	int err; 
+	int err = 0;
 
 	set_ops();
-	err = register_ftrace_function(&ops);
-	if (err)
+	err = ftrace_set_filter(&ops, fn->name, fn->len, 0);
+	if (err < 0)
 		return err;
 
-	err = ftrace_set_filter(&ops, fn->name, fn->len, 0);
-	if (err)
+	err = register_ftrace_function(&ops);
+	if (err < 0)
 		return err;
 
 	return 0;
