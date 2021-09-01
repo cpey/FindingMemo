@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
@@ -11,9 +11,9 @@
 #include "tracer.h"
 #include "hook.h"
 
-MODULE_LICENSE("GPL");
-
 #define DEVICE_NAME "tracer"
+#define DRV_VERSION "0.1"
+
 struct dentry *file;
 
 static int device_open(struct inode *inode, struct file *filp)
@@ -37,11 +37,7 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 	unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
-	FName fn = {
-		.name = "load_msg",
-	};
-
-	fn.len = strlen(fn.name);
+	FName fn;
 
 	switch (cmd) {
 		case HOOK_INIT: {
@@ -56,16 +52,26 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 		}
 		case HOOK_INSTALL: {
 			int err;
+
+			fn.name = "load_msg";
+			fn.len = strlen(fn.name);
 			err = hook_install(&fn);
 			if (err < 0)
 				return err;
 			pr_info("Installed hook\n");
 			break;
 		}
-		case HOOK_REMOVE:
-			hook_remove(&fn);
+		case HOOK_REMOVE: {
+			int err;
+
+			fn.name = "!load_msg";
+			fn.len = strlen(fn.name);
+			err = hook_remove(&fn);
+			if (err < 0)
+				return err;
 			pr_info("Removed hook\n");
 			break;
+		}
 		default:
 			return -EINVAL;
 	}
@@ -102,3 +108,9 @@ static void __exit tracer_exit(void)
 
 module_init(tracer_init);
 module_exit(tracer_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Memory tracer");
+MODULE_AUTHOR("Carles Pey");
+MODULE_VERSION(DRV_VERSION);
+

@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
 
 #include <linux/ftrace.h>
+#include <linux/kallsyms.h>
 #include "tracer.h"
 
 #include <linux/msg.h>  // struct msg_msg
@@ -16,7 +17,7 @@ unsigned long addr;
 struct msg_msg *(*real_load_msg)(const void __user *src, size_t len);
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
-	struct ftrace_ops *ops, struct pt_regs *regs);
+	struct ftrace_ops *ops, struct ftrace_regs *fregs);
 
 void set_ops(void)
 {
@@ -39,8 +40,9 @@ struct msg_msg *wr_load_msg(const void __user *src, size_t len)
 }
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
-	struct ftrace_ops *ops, struct pt_regs *regs)
+	struct ftrace_ops *ops, struct ftrace_regs *fregs)
 {
+	struct pt_regs *regs = ftrace_get_regs(fregs);
 	if (!within_module(parent_ip, THIS_MODULE))
 		regs->ip = (unsigned long) wr_load_msg;
 }
@@ -49,8 +51,7 @@ int hook_install(FName* fn)
 {
 	int err = 0;
 
-	set_ops();
-	err = ftrace_set_filter(&ops, fn->name, fn->len, 0);
+	err = ftrace_set_filter(&ops, fn->name, fn->len, 1);
 	if (err < 0)
 		return err;
 
@@ -65,15 +66,14 @@ int hook_remove(FName* fn)
 {
 	int err; 
 
-	set_ops();
-	err = ftrace_set_notrace(&ops, fn->name, fn->len, 0);
-	if (err)
-		return err;
-
 	err = unregister_ftrace_function(&ops);
 	if (err)
 		return err;
-	
+
+	err = ftrace_set_filter(&ops, fn->name, fn->len, 0);
+	if (err < 0)
+		return err;
+
 	return 0;
 }
 
@@ -81,4 +81,5 @@ void hook_init(unsigned long addr)
 {
 	// Since kallsyms_lookup_name is no longer exported
 	real_load_msg = (void *) &addr;
+	set_ops();
 }

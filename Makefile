@@ -2,7 +2,7 @@ ifneq ($(KERNELRELEASE),)
     obj-m := finder.o
     finder-objs := tracer.o hook.o
 else
-    KERNELDIR ?= ~/dev/src/linux
+    KERNELDIR ?= ~/dev/src/linux-perf
     PWD  := $(shell pwd)
 
 default:
