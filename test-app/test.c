@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
@@ -9,6 +9,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -56,54 +57,70 @@ int main(int argc, char** argv)
 	char device[50];
 	char err_msg[256];
 	char symbol[256];
-	int fd, err, opt;
+	int fd, err = 0, opt;
 	bool symbol_set = false;
+	bool remove_hook = false;
 	unsigned long address = 0;
 
-	while ((opt = getopt(argc, argv, "s:")) != -1) {
+	while ((opt = getopt(argc, argv, "s:r")) != -1) {
 		switch (opt) {
 			case 's':
 				strncpy(symbol, optarg, sizeof(symbol));
 				symbol_set = true;
 				break;
+			case 'r':
+				remove_hook = true;
+				break;
+			case '?':
+				return EXIT_FAILURE;
 		}
+	}
+
+	if (sprintf(device, "%s/%s", DEBUGFS, DEVICE) < 0) {
+		_exit_err("Sprintf error");
+	}
+
+	fd = open(device, O_WRONLY);
+	if (fd < 0) {
+		_exit_err("Error opening the device: %s", strerror(errno));
+	}
+
+	if (remove_hook) {
+		printf("+ Remove Hook\n");
+		if (ioctl(fd, HOOK_REMOVE, NULL) < 0) {
+			_exit_err_free("Hook removal error: %s", strerror(errno));
+		}
+		goto free;
 	}
 
 	if (!symbol_set) {
 		if (sprintf(symbol, "%s", "load_msg") < 0) {
-			_set_exit_err("Sprintf error");
+			_exit_err_free("Sprintf error");
 		}
 	}
 
 	address = get_symbol_addr(symbol);
 	if (!address) {
-		_set_exit_err("Symbol %s not found", symbol);
-	}
-
-	if (sprintf(device, "%s/%s", DEBUGFS, DEVICE) < 0) {
-		_set_exit_err("Sprintf error");
-	}
-
-	fd = open(device, O_WRONLY);
-	if (fd < 0) {
-		_set_exit_err("Error opening the device: %s", strerror(errno));
+		_exit_err_free("Symbol %s not found", symbol);
 	}
 
 	printf("+ Hook init\n");
 	if (ioctl(fd, HOOK_INIT, (void *) &address) < 0) {
-		_set_exit_err("Hook init error: %s", strerror(errno));
+		_exit_err_free("Hook init error: %s", strerror(errno));
 	}
 
 	printf("+ Hook install\n");
 	if (ioctl(fd, HOOK_INSTALL, NULL) < 0) {
-		_set_exit_err("Hook install error: %s", strerror(errno));
+		_exit_err_free("Hook install error: %s", strerror(errno));
 	}
 
+free:
+	if (fd)
+		if (close(fd))
+			_exit_err("Error closing device: %s", strerror(errno));
 out:
-	if (err) {
+	if (err)
 		perror(err_msg);
-	}
 
 	return err;
-
 }

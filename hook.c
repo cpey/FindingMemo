@@ -1,14 +1,12 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
 
-#include <linux/ftrace.h>
 #include "tracer.h"
-
+#include <linux/ftrace.h>
+#include <linux/kallsyms.h>
 #include <linux/msg.h>  // struct msg_msg
-
-MODULE_LICENSE("GPL");
 
 static struct ftrace_ops ops __read_mostly;
 unsigned long addr;
@@ -49,7 +47,6 @@ int hook_install(FName* fn)
 {
 	int err = 0;
 
-	set_ops();
 	err = ftrace_set_filter(&ops, fn->name, fn->len, 0);
 	if (err < 0)
 		return err;
@@ -65,15 +62,14 @@ int hook_remove(FName* fn)
 {
 	int err; 
 
-	set_ops();
-	err = ftrace_set_notrace(&ops, fn->name, fn->len, 0);
-	if (err)
-		return err;
-
 	err = unregister_ftrace_function(&ops);
 	if (err)
 		return err;
-	
+
+	err = ftrace_set_filter(&ops, fn->name, fn->len, 0);
+	if (err < 0)
+		return err;
+
 	return 0;
 }
 
@@ -81,4 +77,5 @@ void hook_init(unsigned long addr)
 {
 	// Since kallsyms_lookup_name is no longer exported
 	real_load_msg = (void *) &addr;
+	set_ops();
 }
