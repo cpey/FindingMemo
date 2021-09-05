@@ -37,11 +37,7 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 	unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
-	FName fn = {
-		.name = "load_msg",
-	};
-
-	fn.len = strlen(fn.name);
+	FName fn;
 
 	switch (cmd) {
 		case HOOK_INIT: {
@@ -56,6 +52,8 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 		}
 		case HOOK_INSTALL: {
 			int err;
+			fn.name = "load_msg";
+			fn.len = strlen(fn.name);
 			err = hook_install(&fn);
 			if (err < 0)
 				return err;
@@ -64,6 +62,8 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 		}
 		case HOOK_REMOVE: {
 			int err;
+			fn.name = "!load_msg";
+			fn.len = strlen(fn.name);
 			err = hook_remove(&fn);
 			if (err < 0)
 				return err;
@@ -111,3 +111,4 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Memory tracer");
 MODULE_AUTHOR("Carles Pey");
 MODULE_VERSION(DRV_VERSION);
+
