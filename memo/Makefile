@@ -1,3 +1,3 @@
-test: test.c
+memo: memo.c
 	gcc -o $@ $^
 	scp $@ test:

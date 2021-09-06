@@ -13,7 +13,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include "test.h"
+#include "memo.h"
 
 #define DEVICE 		"tracer"
 #define DEBUGFS		"/sys/kernel/debug"
