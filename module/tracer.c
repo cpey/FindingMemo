@@ -8,6 +8,7 @@
 #include <linux/init.h>
 #include <linux/uaccess.h>
 #include <linux/debugfs.h>
+#include <linux/slab.h>
 #include "tracer.h"
 #include "hook.h"
 
@@ -15,6 +16,13 @@
 #define DRV_VERSION "0.1"
 
 struct dentry *file;
+
+typedef struct tracer_info {
+	bool hook_set;
+	bool hook_initiated;
+} TRACER_INFO;
+
+struct tracer_info _tracer_info = { false, false };
 
 static int device_open(struct inode *inode, struct file *filp)
 {
@@ -33,41 +41,83 @@ static ssize_t device_read(struct file *filp, char *buf,
 	return 0;
 }
 
-static long device_ioctl(struct file *file, unsigned int cmd,
+static int tracer_hook_install(void)
+{
+	int err;
+	FName fn;
+
+	fn.name = "load_msg";
+	fn.len = strlen(fn.name);
+	err = hook_install(&fn);
+	if (err < 0)
+		return err;
+	pr_info("Installed hook\n");
+	return err;
+}
+
+static int tracer_hook_remove(void) 
+{
+	int err;
+	FName fn;
+
+	fn.name = "!load_msg";
+	fn.len = strlen(fn.name);
+	err = hook_remove(&fn);
+	if (!err)
+		pr_info("Removed hook\n");
+	return err;
+}
+
+static long device_ioctl(struct file *filp, unsigned int cmd,
 	unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
-	FName fn;
 
 	switch (cmd) {
 		case HOOK_INIT: {
 			unsigned long add;
+
+			if (_tracer_info.hook_initiated) {
+				return -EFAULT;
+			}
+
 			if (copy_from_user(&add, argp, sizeof(add))) {
 				return -EFAULT;
 			}
 
 			pr_info("Address to hook: %lX\n", add);
 			hook_init(add);
+			_tracer_info.hook_initiated = true;
 			break;
 		}
 		case HOOK_INSTALL: {
 			int err;
-			fn.name = "load_msg";
-			fn.len = strlen(fn.name);
-			err = hook_install(&fn);
-			if (err < 0)
+
+			if (_tracer_info.hook_set) {
+				return -EFAULT;		
+			}
+
+			err = tracer_hook_install();
+			if (err < 0) {
 				return err;
-			pr_info("Installed hook\n");
+			}
+
+			_tracer_info.hook_set = true;
 			break;
 		}
 		case HOOK_REMOVE: {
 			int err;
-			fn.name = "!load_msg";
-			fn.len = strlen(fn.name);
-			err = hook_remove(&fn);
-			if (err < 0)
+
+			if (!_tracer_info.hook_set) {
+				return -EFAULT;		
+			}
+
+			err = tracer_hook_remove();
+			if (err < 0) {
 				return err;
-			pr_info("Removed hook\n");
+			}
+
+			_tracer_info.hook_set = false;
 			break;
 		}
 		default:
@@ -78,7 +128,7 @@ static long device_ioctl(struct file *file, unsigned int cmd,
 
 static int device_release(struct inode *inode, struct file *filp)
 {
-	return 0;
+	return 0; 
 }
 
 static const struct file_operations my_fops = {
@@ -100,6 +150,11 @@ static int __init tracer_init(void)
 
 static void __exit tracer_exit(void)
 {
+	if (_tracer_info.hook_set) {
+		tracer_hook_remove();
+		_tracer_info.hook_set = false;
+	}
+
 	debugfs_remove(file);
 	pr_info("Unloaded Memory Tracer\n");
 }
