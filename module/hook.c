@@ -6,23 +6,20 @@
 #include "tracer.h"
 #include <linux/ftrace.h>
 #include <linux/kallsyms.h>
-#include <linux/msg.h>  // struct msg_msg
+#include <linux/msg.h>
 
-static struct ftrace_ops ops __read_mostly;
-unsigned long addr;
 
 struct msg_msg *(*real_load_msg)(const void __user *src, size_t len);
-
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct ftrace_regs *fregs);
 
-void set_ops(void)
-{
-	ops.func = hook_callback;
-	ops.flags = FTRACE_OPS_FL_SAVE_REGS 
+unsigned long addr;
+static struct ftrace_ops ops __read_mostly = {
+	.func = hook_callback,
+	.flags = FTRACE_OPS_FL_SAVE_REGS
 				| FTRACE_OPS_FL_SAVE_REGS_IF_SUPPORTED
-				| FTRACE_OPS_FL_IPMODIFY;
-}
+				| FTRACE_OPS_FL_IPMODIFY
+};
 
 // Wrapper to load_msg
 struct msg_msg *wr_load_msg(const void __user *src, size_t len)
@@ -76,7 +73,6 @@ int hook_remove(FName* fn)
 
 void hook_init(unsigned long addr)
 {
-	// Since kallsyms_lookup_name is no longer exported
-	real_load_msg = (void *) &addr;
-	set_ops();
+	// Because kallsyms_lookup_name is no longer exported
+	real_load_msg = (void *) addr;
 }
