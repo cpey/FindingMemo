@@ -7,11 +7,12 @@
 #include <linux/ftrace.h>
 #include <linux/kallsyms.h>
 #include <linux/msg.h>
+#include <linux/slab.h>
 
 
 struct msg_msg *(*real_load_msg)(const void __user *src, size_t len);
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
-	struct ftrace_ops *ops, struct ftrace_regs *fregs);
+	struct ftrace_ops *ops, struct pt_regs *regs);
 
 unsigned long addr;
 static struct ftrace_ops ops __read_mostly = {
@@ -26,17 +27,15 @@ struct msg_msg *wr_load_msg(const void __user *src, size_t len)
 {
 	struct msg_msg *msg;
 
-	pr_info("+ load_msg()\n");
 	msg = (*real_load_msg)(src, len);
-	pr_info("result: %p\n", msg);
+	pr_info("fmemo: load_msg(): msg addr: %px\n", msg);
 
 	return msg;
 }
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
-	struct ftrace_ops *ops, struct ftrace_regs *fregs)
+	struct ftrace_ops *ops, struct pt_regs *regs)
 {
-	struct pt_regs *regs = ftrace_get_regs(fregs);
 	if (!within_module(parent_ip, THIS_MODULE))
 		regs->ip = (unsigned long) wr_load_msg;
 }

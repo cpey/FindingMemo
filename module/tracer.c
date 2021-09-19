@@ -118,6 +118,7 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 			}
 
 			_tracer_info.hook_set = false;
+			_tracer_info.hook_initiated = false;
 			break;
 		}
 		default:
