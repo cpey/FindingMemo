@@ -68,8 +68,9 @@ struct fm_hook_metadata {
 	__attribute__((section("__fm_hooks_metadata")))		\
 	*__p_fm_hook_meta##sname = &__fm_hook_meta##sname;
 
-#define FM_HOOK_FUNC_NAME(name)		__do_fm_hook_##name
-#define FM_HOOK_WRAP_NAME(name)		__do_fm_wrap_##name
+#define FM_HOOK_FUNC_PTR_NAME(name)		__do_fm_hook_##name
+#define FM_HOOK_FUNC_NAME(name)			(*__do_fm_hook_##name)
+#define FM_HOOK_WRAP_NAME(name)			__do_fm_wrap_##name
 
 int hook_install(FName*);
 int hook_remove(FName*);

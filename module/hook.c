@@ -25,10 +25,10 @@ static struct ftrace_ops ops __read_mostly = {
 
 FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src, size_t, len)
 {
-	struct msg_msg *t;
-	pr_info("+ %s", "load_msg");
-	t = FM_HOOK_FUNC_NAME(load_msg)(src, len);
-	return t;
+	struct msg_msg *msg;
+	msg = FM_HOOK_FUNC_NAME(load_msg)(src, len);
+	pr_info("fmemo: load_msg(): msg addr: %px\n", msg);
+	return msg;
 }
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
@@ -41,7 +41,7 @@ static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 void hook_init(unsigned long addr)
 {
 	// Because kallsyms_lookup_name is no longer exported
-	FM_HOOK_FUNC_NAME(load_msg) = (void *) addr;
+	FM_HOOK_FUNC_PTR_NAME(load_msg) = (void *) addr;
 }
 
 int hook_install(FName* fn)
