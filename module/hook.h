@@ -10,7 +10,8 @@
 
 struct fm_hook_metadata {
 	const char *name;
-	const void *func;
+	void *func;
+	const void *wrap;
 	const char *rtype;
 	const char **types;
 	const char **args;
@@ -30,7 +31,6 @@ struct fm_hook_metadata {
 #define FM_HOOK_FUNC_DEFINE6(name, ...) FM_HOOK_FUNC_DEFINEx(6, _##name, __VA_ARGS__)
 
 #define FM_HOOK_FUNC_DEFINE_MAXARGS  6
-#define FM_HOOK_WRAP_DEFINE_MAXARGS  6
 
 #define FM_HOOK_FUNC_DEFINEx(x, sname, ...)				\
 	__FM_HOOK_FUNC_DEFINEx(x, sname, __VA_ARGS__)		\
@@ -57,12 +57,16 @@ struct fm_hook_metadata {
 	static struct fm_hook_metadata __used				\
 	 __fm_hook_meta##sname = {							\
 		.name 	= #sname,								\
-		.func 	= __do_fm_wrap##sname,					\
+		.func 	= &__do_fm_hook##sname,					\
+		.wrap 	= __do_fm_wrap##sname,					\
 		.rtype	= #srtype, 								\
 		.types 	= x ? types##sname : NULL,				\
 		.args	= x ? args##sname : NULL,				\
 		.list 	= LIST_HEAD_INIT(__fm_hook_meta##sname.list),  \
-	};
+	};													\
+	static struct fm_hook_metadata __used				\
+	__attribute__((section("__fm_hooks_metadata")))		\
+	*__p_fm_hook_meta##sname = &__fm_hook_meta##sname;
 
 #define FM_HOOK_FUNC_NAME(name)		__do_fm_hook_##name
 #define FM_HOOK_WRAP_NAME(name)		__do_fm_wrap_##name
