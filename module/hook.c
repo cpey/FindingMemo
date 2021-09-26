@@ -41,7 +41,7 @@ static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 void hook_init(unsigned long addr)
 {
 	// Because kallsyms_lookup_name is no longer exported
-	FM_HOOK_FUNC_PTR_NAME(load_msg) = (void *) addr;
+	FM_HOOK_FUNC_NAME(load_msg) = (void *) addr;
 }
 
 int hook_install(FName* fn)
