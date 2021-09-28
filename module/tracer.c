@@ -15,7 +15,7 @@
 #define DEVICE_NAME "tracer"
 #define DRV_VERSION "0.1"
 
-struct dentry *file;
+DEFINE_MUTEX(finder_mutex);
 
 typedef struct tracer_info {
 	bool hook_set;
@@ -23,6 +23,7 @@ typedef struct tracer_info {
 } TRACER_INFO;
 
 struct tracer_info _tracer_info = { false, false };
+struct dentry *file;
 
 static int device_open(struct inode *inode, struct file *filp)
 {
@@ -141,10 +142,85 @@ static const struct file_operations my_fops = {
 	.release = device_release
 };
 
+static int __register_hook(struct fm_hook_metadata *hook)
+{
+	pr_info("Finder: %d\n", __LINE__);
+	list_add(&hook->list, &fm_hooks);
+	pr_info("Finder: %d\n", __LINE__);
+	return 0;
+}
+
+static int __remove_hook(struct fm_hook_metadata *hook)
+{
+	pr_info("Finder - r: %d name: %s\n", __LINE__, hook->name);
+	list_del(&hook->list);
+	pr_info("Finder - r: %d\n", __LINE__);
+	return 0;
+}
+
+static void finder_module_add_hooks(struct module *mod)
+{
+	struct fm_hook_metadata **hook, **start, **end;
+	pr_info("Finder: %d\n", __LINE__);
+	if (!mod->num_finder_hooks)
+		return;
+
+	start = mod->finder_hooks;
+	end = mod->finder_hooks + mod->num_finder_hooks;
+
+	pr_info("Finder: %d\n", __LINE__);
+	for_each_hook(hook, start, end) {
+	pr_info("Finder: %d name: %s\n", __LINE__, (*hook)->name);
+		__register_hook(*hook);
+	}
+}
+
+static void finder_module_remove_hooks(struct module *mod)
+{
+	struct fm_hook_metadata *hook, *p;
+
+	pr_info("Finder - r: %d\n", __LINE__);
+	list_for_each_entry_safe(hook, p, &fm_hooks, list) {
+		__remove_hook(hook);
+	}
+}
+
+static int finder_module_notify(struct notifier_block *self,
+			       unsigned long val, void *data)
+{
+	struct module *mod = data;
+
+	pr_info("Finder: line: %d val: %lu\n", __LINE__, val);
+	mutex_lock(&finder_mutex);
+	switch (val) {
+	// MODULE_STATE_LIVE to add hooks when the module is first loaded
+	case MODULE_STATE_LIVE:
+	case MODULE_STATE_COMING:
+		finder_module_add_hooks(mod);
+		break;
+	case MODULE_STATE_GOING:
+		finder_module_remove_hooks(mod);
+		break;
+	}
+	mutex_unlock(&finder_mutex);
+	pr_info("Finder out: line: %d val: %lu\n", __LINE__, val);
+
+	return 0;
+}
+
+static struct notifier_block finder_module_nb = {
+	.notifier_call = finder_module_notify,
+};
+
 static int __init tracer_init(void)
 {
+	int ret;
+
 	pr_info("Memory Tracer\n");
 	file = debugfs_create_file(DEVICE_NAME, 0200, NULL, NULL, &my_fops);
+	ret = register_module_notifier(&finder_module_nb);
+	if (ret)
+		pr_warn("Failed to register hook metadata module notifier\n");
 
 	return 0;
 }

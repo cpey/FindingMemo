@@ -18,6 +18,13 @@ struct fm_hook_metadata {
 	struct list_head list;
 };
 
+extern struct list_head fm_hooks;
+
+#define for_each_hook(hook, start, end)					\
+	for (hook = start;									\
+	     (unsigned long)hook < (unsigned long)end;		\
+	     hook++)
+
 #define __FMH_STR_ADECL(t, a)	#a
 #define __FMH_STR_TDECL(t, a)	#t
 #define __FMH_STR_TRET (t)		#t

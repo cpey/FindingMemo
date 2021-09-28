@@ -10,7 +10,7 @@
 #include <linux/msg.h>
 #include <linux/slab.h>
 
-LIST_HEAD(fm_hook_list);
+LIST_HEAD(fm_hooks);
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs);
