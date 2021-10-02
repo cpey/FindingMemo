@@ -42,13 +42,13 @@ extern struct list_head fm_hooks;
 #define FM_HOOK_FUNC_DEFINEx(x, sname, ...)		\
 	__FM_HOOK_FUNC_DEFINEx(x, sname, __VA_ARGS__)	\
 	__FM_HOOK_WRAP_DECLAREx(x, sname, __VA_ARGS__)	\
-	__FM_HOOK_META_DEFINEx(x, sname, __VA_ARGS__)	\
+	__FM_HOOK_META_DEFINEx(x, sname, __VA_ARGS__)  	\
 	__FM_HOOK_WRAP_DEFINEx(x, sname, __VA_ARGS__)
 
 #define __FM_HOOK_FUNC_DEFINEx(x, name, rtype, ...)	\
 	rtype (*__do_fm_hook##name)(__MAP(x,__SC_DECL,__VA_ARGS__));
 
-#define __FM_HOOK_WRAP_DECLAREx(x, name, rtype, ...)	\
+#define __FM_HOOK_WRAP_DECLAREx(x, name, rtype, ...) 	\
 	static inline rtype (__do_fm_wrap##name)(__MAP(x,__SC_DECL,__VA_ARGS__));
 
 #define __FM_HOOK_WRAP_DEFINEx(x, name, rtype, ...) 	\

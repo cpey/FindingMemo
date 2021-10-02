@@ -15,7 +15,6 @@ LIST_HEAD(fm_hooks);
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs);
 
-unsigned long addr;
 static struct ftrace_ops ops __read_mostly = {
 	.func = hook_callback,
 	.flags = FTRACE_OPS_FL_SAVE_REGS
@@ -23,10 +22,14 @@ static struct ftrace_ops ops __read_mostly = {
 				| FTRACE_OPS_FL_IPMODIFY
 };
 
+atomic_t trace_active;
+
 FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src, size_t, len)
 {
 	struct msg_msg *msg;
+	atomic_set(&trace_active, false);
 	msg = FM_HOOK_FUNC_NAME(load_msg)(src, len);
+	atomic_set(&trace_active, true);
 	pr_info("fmemo: load_msg(): msg addr: %px\n", msg);
 	return msg;
 }
@@ -34,7 +37,7 @@ FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src, size_
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs)
 {
-	if (!within_module(parent_ip, THIS_MODULE))
+	if (atomic_read(&trace_active))
 		regs->ip = (unsigned long) FM_HOOK_WRAP_NAME(load_msg);
 }
 
@@ -42,6 +45,7 @@ void hook_init(unsigned long addr)
 {
 	// Because kallsyms_lookup_name is no longer exported
 	FM_HOOK_FUNC_NAME(load_msg) = (void *) addr;
+	atomic_set(&trace_active, true);
 }
 
 int hook_install(FName* fn)

@@ -1,13 +1,3 @@
-diff --git a/drivers/Makefile b/drivers/Makefile
-index c0cd1b9075e3..5425645dd0c1 100644
---- a/drivers/Makefile
-+++ b/drivers/Makefile
-@@ -188,3 +188,5 @@ obj-$(CONFIG_GNSS)		+= gnss/
- obj-$(CONFIG_INTERCONNECT)	+= interconnect/
- obj-$(CONFIG_COUNTER)		+= counter/
- obj-$(CONFIG_MOST)		+= most/
-+
-+obj-y				+= findingmemo/
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
 index 052e0f05a984..3cecdd9a15ac 100644
 --- a/include/asm-generic/vmlinux.lds.h
