@@ -77,18 +77,22 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 
 	switch (cmd) {
 		case HOOK_INIT: {
-			unsigned long add;
+			struct finder_info finfo;
+			int err;
 
 			if (_tracer_info.hook_initiated) {
 				return -EFAULT;
 			}
 
-			if (copy_from_user(&add, argp, sizeof(add))) {
+			if (copy_from_user(&finfo, argp, sizeof(struct finder_info))) {
 				return -EFAULT;
 			}
 
-			pr_info("Address to hook: %lX\n", add);
-			hook_init(add);
+			pr_info("Address to hook: %lX\n", finfo.addr);
+			err = hook_init(&finfo);
+			if (err < 0) {
+				return err;
+			}
 			_tracer_info.hook_initiated = true;
 			break;
 		}
