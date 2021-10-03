@@ -1,0 +1,56 @@
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 052e0f05a984..3cecdd9a15ac 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -259,6 +259,11 @@
+ #define EARLY_LSM_TABLE()
+ #endif
+ 
++#define FM_HOOKS_META()	. = ALIGN(8);					\
++			__start_fm_hooks_meta = .;			\
++			KEEP(*(__fm_hooks_metadata))			\
++			__stop_fm_hooks_meta = .;
++
+ #define ___OF_TABLE(cfg, name)	_OF_TABLE_##cfg(name)
+ #define __OF_TABLE(cfg, name)	___OF_TABLE(cfg, name)
+ #define OF_TABLE(cfg, name)	__OF_TABLE(IS_ENABLED(cfg), name)
+@@ -692,7 +697,8 @@
+ 	THERMAL_TABLE(governor)						\
+ 	EARLYCON_TABLE()						\
+ 	LSM_TABLE()							\
+-	EARLY_LSM_TABLE()
++	EARLY_LSM_TABLE()						\
++	FM_HOOKS_META()
+ 
+ #define INIT_TEXT							\
+ 	*(.init.text .init.text.*)					\
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 2e6670860d27..17900ebca9cf 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -418,6 +418,10 @@ struct module {
+ 	unsigned int num_exentries;
+ 	struct exception_table_entry *extable;
+ 
++	/* MemoryFinder Hooks */
++	unsigned int num_finder_hooks;
++	struct fm_hook_metadata **finder_hooks;
++
+ 	/* Startup function. */
+ 	int (*init)(void);
+ 
+diff --git a/kernel/module.c b/kernel/module.c
+index aa183c9ac0a2..7bddaa2a95e7 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -3234,6 +3234,10 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 	mod->extable = section_objs(info, "__ex_table",
+ 				    sizeof(*mod->extable), &mod->num_exentries);
+ 
++	mod->finder_hooks = section_objs(info, "__fm_hooks_metadata",
++					 sizeof(*mod->finder_hooks),
++					 &mod->num_finder_hooks);
++
+ 	if (section_addr(info, "__obsparm"))
+ 		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
+ 

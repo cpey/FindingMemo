@@ -23,10 +23,15 @@ typedef struct FUNCTION_NAME {
 	int len;
 } FName;
 
+struct finder_info {
+	unsigned long addr;
+	FName func;
+};
+
 #define HOOK_IOCTL_NUM 'm'
 #define HOOK_INSTALL _IOW(HOOK_IOCTL_NUM, 0, FName)
 #define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
-#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, unsigned long)
+#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
 
 unsigned long get_symbol_addr(char *name)
 {
@@ -60,7 +65,7 @@ int main(int argc, char** argv)
 	int fd, err = 0, opt;
 	bool symbol_set = false;
 	bool remove_hook = false;
-	unsigned long address = 0;
+	struct finder_info finfo = {0};
 
 	while ((opt = getopt(argc, argv, "s:r")) != -1) {
 		switch (opt) {
@@ -98,14 +103,16 @@ int main(int argc, char** argv)
 			_exit_err_free("Sprintf error");
 		}
 	}
+	finfo.func.name = symbol;
+	finfo.func.len = strlen(symbol);
 
-	address = get_symbol_addr(symbol);
-	if (!address) {
+	finfo.addr = get_symbol_addr(symbol);
+	if (!finfo.addr) {
 		_exit_err_free("Symbol %s not found", symbol);
 	}
 
 	printf("+ Hook init\n");
-	if (ioctl(fd, HOOK_INIT, (void *) &address) < 0) {
+	if (ioctl(fd, HOOK_INIT, (void *) &finfo) < 0) {
 		_exit_err_free("Hook init error: %s", strerror(errno));
 	}
 
