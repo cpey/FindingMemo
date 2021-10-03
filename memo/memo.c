@@ -31,7 +31,7 @@ struct finder_info {
 #define HOOK_IOCTL_NUM 'm'
 #define HOOK_INSTALL _IOW(HOOK_IOCTL_NUM, 0, FName)
 #define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
-#define HOOK_INIT    _IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
+#define HOOK_ADD     _IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
 
 unsigned long get_symbol_addr(char *name)
 {
@@ -111,14 +111,14 @@ int main(int argc, char** argv)
 		_exit_err_free("Symbol %s not found", symbol);
 	}
 
-	printf("+ Hook init\n");
-	if (ioctl(fd, HOOK_INIT, (void *) &finfo) < 0) {
-		_exit_err_free("Hook init error: %s", strerror(errno));
+	printf("+ Add hook\n");
+	if (ioctl(fd, HOOK_ADD, (void *) &finfo) < 0) {
+		_exit_err_free("Error adding hook: %s", strerror(errno));
 	}
 
-	printf("+ Hook install\n");
+	printf("+ Install hook\n");
 	if (ioctl(fd, HOOK_INSTALL, NULL) < 0) {
-		_exit_err_free("Hook install error: %s", strerror(errno));
+		_exit_err_free("Error installing hook: %s", strerror(errno));
 	}
 
 free:

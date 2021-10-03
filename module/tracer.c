@@ -76,20 +76,16 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 	void __user *argp = (void __user *)arg;
 
 	switch (cmd) {
-		case HOOK_INIT: {
+		case HOOK_ADD: {
 			struct finder_info finfo;
 			int err;
-
-			if (_tracer_info.hook_initiated) {
-				return -EFAULT;
-			}
 
 			if (copy_from_user(&finfo, argp, sizeof(struct finder_info))) {
 				return -EFAULT;
 			}
 
 			pr_info("Address to hook: %lX\n", finfo.addr);
-			err = hook_init(&finfo);
+			err = hook_add(&finfo);
 			if (err < 0) {
 				return err;
 			}

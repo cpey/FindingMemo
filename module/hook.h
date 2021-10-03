@@ -83,6 +83,6 @@ extern struct list_head fm_hooks;
 
 int hook_install(FName*);
 int hook_remove(FName*);
-int hook_init(struct finder_info *);
+int hook_add(struct finder_info *);
 
 #endif /* HOOK_H_ */

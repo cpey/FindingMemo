@@ -25,7 +25,8 @@ static struct ftrace_ops ops __read_mostly = {
 atomic_t trace_active;
 struct fm_hook_metadata *curr_hook;
 
-FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src, size_t, len)
+FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
+		size_t, len)
 {
 	struct msg_msg *msg;
 	atomic_set(&trace_active, false);
@@ -35,26 +36,61 @@ FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src, size_
 	return msg;
 }
 
+FM_HOOK_FUNC_DEFINE3(find_msg, struct msg_msg *, struct msg_queue *, msq,
+		long *, msgtyp, int, mode)
+{
+	struct msg_msg *msg;
+	atomic_set(&trace_active, false);
+	msg = FM_HOOK_FUNC_PTR(find_msg)(msq, mstyp, mode);
+	atomic_set(&trace_active, true);
+	pr_info("fmemo: find_msg(): msg addr: %px\n", msg);
+	return msg;
+}
+
+static bool set_current_hook(char *name)
+{
+	struct fm_hook_metadata *hook;
+	int err = -1;
+
+	list_for_each_entry(hook, &fm_hooks, list) {
+		if (!strcmp(hook->name, name))  {
+			curr_hook = hook;
+			err = 0;
+		}
+	}
+
+	return err;
+}
+
+static bool set_current_hook_ip(unsigned long ip)
+{
+	struct fm_hook_metadata *hook;
+	int err = -1;
+
+	list_for_each_entry(hook, &fm_hooks, list) {
+		if (hook->func == (void *) ip)  {
+			curr_hook = hook;
+			err = 0;
+		}
+	}
+
+	return err;
+}
+
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs)
 {
+	set_current_hook_ip(ip);
 	if (atomic_read(&trace_active))
 		regs->ip = (unsigned long) FM_HOOK_WRAP;
 }
 
-int hook_init(struct finder_info *finfo)
+int hook_add(struct finder_info *finfo)
 {
-	struct fm_hook_metadata *hook;
-	bool found = false;
+	int err;
 
-	list_for_each_entry(hook, &fm_hooks, list) {
-		if (!strcmp(hook->name, finfo->func.name))  {
-			curr_hook = hook;
-			found = true;
-		}
-	}
-
-	if (!found)
+	err = set_current_hook(finfo->func.name);
+	if (err < 0)
 		return -ENOMSG;
 
 	FM_HOOK_FUNC = (void *) finfo->addr;
