@@ -6,6 +6,18 @@
 #ifndef TEST_H_
 #define TEST_H_
 
+#define ERR_MAX_LEN 256
+#define SYM_MAX_LEN 256
+
+#define _set_err(msg, ...) \
+	do { \
+		err = 1; \
+		sprintf(err_info.desc, msg, ##__VA_ARGS__); \
+		err_info._errno = errno; \
+		goto free; \
+	} while (0)
+
+
 #define _exit_err_free(msg, ...) \
 	do { \
 		err = 1; \
