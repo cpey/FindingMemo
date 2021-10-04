@@ -5,6 +5,7 @@
 
 #include "tracer.h"
 #include "hook.h"
+#include "types.h"
 #include <linux/ftrace.h>
 #include <linux/kallsyms.h>
 #include <linux/msg.h>
@@ -41,7 +42,7 @@ FM_HOOK_FUNC_DEFINE3(find_msg, struct msg_msg *, struct msg_queue *, msq,
 {
 	struct msg_msg *msg;
 	atomic_set(&trace_active, false);
-	msg = FM_HOOK_FUNC_PTR(find_msg)(msq, mstyp, mode);
+	msg = FM_HOOK_FUNC_PTR(find_msg)(msq, msgtyp, mode);
 	atomic_set(&trace_active, true);
 	pr_info("fmemo: find_msg(): msg addr: %px\n", msg);
 	return msg;
