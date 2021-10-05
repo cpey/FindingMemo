@@ -15,8 +15,9 @@
 #include <sys/ioctl.h>
 #include "memo.h"
 
-#define DEVICE 		"tracer"
+#define DEVICE		"tracer"
 #define DEBUGFS		"/sys/kernel/debug"
+#define LINE_MAX_LEN	512
 
 typedef struct FUNCTION_NAME {
 	char *name;
@@ -43,8 +44,12 @@ struct err_type err_info;
 unsigned long get_symbol_addr(char *name)
 {
 	FILE *fd;
-	unsigned long addr;
-	char dummy, sname[512];
+	char sname[LINE_MAX_LEN];
+	char line[LINE_MAX_LEN];
+	char *token;
+	int pos;
+	bool found = false;
+	unsigned long addr = 0;
 	int ret = 0;
 
 	fd = fopen("/proc/kallsyms", "r");
@@ -52,31 +57,52 @@ unsigned long get_symbol_addr(char *name)
 		return 0;
 	}
 
-	while (ret != EOF) {
-		ret = fscanf(fd, "%p %c %s\n", (void **) &addr, &dummy, sname);
-		if (ret && !strcmp(name, sname)) {
-			printf("+ Found symbol %s at 0x%lx\n", name, addr);
-			return addr;
+	while (fgets(line, LINE_MAX_LEN , fd)) {
+		token = strtok(line, " ");
+		pos = 0;
+		while (token != NULL) {
+			switch(pos) {
+			case 0:
+				sscanf(token, "%p", (void **) &addr);
+				break;
+			case 2:
+				sscanf(token, "%s", sname);
+				break;
+			default:
+				break;
+			}
+			pos += 1;
+			token = strtok(NULL, " ");
+		}
+		if (!strcmp(name, sname)) {
+			found = true;
+			break;
 		}
 	}
 
-	return 0;
+	if (found) {
+		ret = addr;
+	}
+	fclose(fd);
+	return ret;
 }
 
-int add_hook(char *symbol, int fd, struct finder_info *finfo)
+int add_hook(char *symbol, int fd)
 {
+	struct finder_info finfo = {0};
 	int err = 0;
 
-	finfo->func.name = symbol;
-	finfo->func.len = strlen(symbol);
+	finfo.func.name = symbol;
+	finfo.func.len = strlen(symbol);
 
-	finfo->addr = get_symbol_addr(symbol);
-	if (!finfo->addr) {
+	finfo.addr = get_symbol_addr(symbol);
+	if (!finfo.addr) {
 		_set_err("Symbol %s not found", symbol);
 	}
 
 	printf("+ Add hook\n");
 	if (ioctl(fd, HOOK_ADD, (void *) &finfo) < 0) {
+		printf("err %d\n", __LINE__);
 		_set_err("Error adding hook: %s", strerror(errno));
 	}
 free:
@@ -92,7 +118,6 @@ int main(int argc, char** argv)
 	int fd, err = 0, opt;
 	bool symbol_set = false;
 	bool remove_hook = false;
-	struct finder_info finfo = {0};
 
 	while ((opt = getopt(argc, argv, "s:r")) != -1) {
 		switch (opt) {
@@ -131,7 +156,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (add_hook(symbol, fd, &finfo)) {
+	if (add_hook(symbol, fd)) {
 		_exit_err_free(err_info.desc);
 	}
 	printf("+ Install hook\n");
@@ -145,7 +170,7 @@ free:
 			_exit_err("Error closing device: %s", strerror(errno));
 out:
 	if (err)
-		perror(err_msg);
+		fprintf(stderr, "%s\n", err_msg);
 
 	return err;
 }

@@ -16,6 +16,7 @@ struct fm_hook_metadata {
 	const char *rtype;
 	const char **types;
 	const char **args;
+	atomic_t mutex;
 	struct list_head list;
 };
 

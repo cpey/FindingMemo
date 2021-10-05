@@ -17,7 +17,6 @@
 		goto free; \
 	} while (0)
 
-
 #define _exit_err_free(msg, ...) \
 	do { \
 		err = 1; \

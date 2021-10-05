@@ -23,29 +23,26 @@ static struct ftrace_ops ops __read_mostly = {
 				| FTRACE_OPS_FL_IPMODIFY
 };
 
-atomic_t trace_active;
 struct fm_hook_metadata *curr_hook;
+static bool hook_installed = false;
 
 FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
 		size_t, len)
 {
 	struct msg_msg *msg;
-	atomic_set(&trace_active, false);
+	atomic_set(&curr_hook->mutex, false);
 	msg = FM_HOOK_FUNC_PTR(load_msg)(src, len);
-	atomic_set(&trace_active, true);
+	atomic_set(&curr_hook->mutex, true);
 	pr_info("fmemo: load_msg(): msg addr: %px\n", msg);
 	return msg;
 }
 
-FM_HOOK_FUNC_DEFINE3(find_msg, struct msg_msg *, struct msg_queue *, msq,
-		long *, msgtyp, int, mode)
+FM_HOOK_FUNC_DEFINE1(free_msg, void, struct msg_msg *, msg)
 {
-	struct msg_msg *msg;
-	atomic_set(&trace_active, false);
-	msg = FM_HOOK_FUNC_PTR(find_msg)(msq, msgtyp, mode);
-	atomic_set(&trace_active, true);
-	pr_info("fmemo: find_msg(): msg addr: %px\n", msg);
-	return msg;
+	atomic_set(&curr_hook->mutex, false);
+	FM_HOOK_FUNC_PTR(free_msg)(msg);
+	atomic_set(&curr_hook->mutex, true);
+	pr_info("fmemo: free_msg(): msg addr: %px\n", msg);
 }
 
 static bool set_current_hook(char *name)
@@ -82,7 +79,7 @@ static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs)
 {
 	set_current_hook_ip(ip);
-	if (atomic_read(&trace_active))
+	if (atomic_read(&curr_hook->mutex))
 		regs->ip = (unsigned long) FM_HOOK_WRAP;
 }
 
@@ -95,13 +92,16 @@ int hook_add(struct finder_info *finfo)
 		return -ENOMSG;
 
 	FM_HOOK_FUNC = (void *) finfo->addr;
-	atomic_set(&trace_active, true);
+	atomic_set(&curr_hook->mutex, true);
 	return 0;
 }
 
 int hook_install(FName* fn)
 {
 	int err = 0;
+
+	if (hook_installed)
+		return -EALREADY;
 
 	err = ftrace_set_filter(&ops, fn->name, fn->len, 1);
 	if (err < 0)
@@ -117,6 +117,9 @@ int hook_install(FName* fn)
 int hook_remove(FName* fn)
 {
 	int err; 
+
+	if (!hook_installed)
+		return -EALREADY;
 
 	err = unregister_ftrace_function(&ops);
 	if (err)
