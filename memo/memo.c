@@ -3,21 +3,23 @@
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
 
-#include <stdio.h>
-#include <fcntl.h>
+#include <ctype.h>
 #include <errno.h>
-#include <string.h>
 #include <getopt.h>
+#include <stdio.h>
+#include <string.h>
+#include <fcntl.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #include "memo.h"
 
-#define DEVICE		"tracer"
-#define DEBUGFS		"/sys/kernel/debug"
-#define LINE_MAX_LEN	512
+#define DEVICE			"tracer"
+#define DEBUGFS			"/sys/kernel/debug"
+#define LINE_MAX_LEN		512
+#define OPT_STR_MAX_LEN		64
 
 typedef struct FUNCTION_NAME {
 	char *name;
@@ -40,6 +42,56 @@ struct err_type {
 #define HOOK_ADD	_IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
 
 struct err_type err_info;
+struct memo_args {
+	char option;
+	char *long_opt;
+	int has_arg;
+	char *desc;
+};
+
+static struct memo_args args[] = {
+	{'s', "symbol", required_argument, "Symbol to hook"},
+	{'r', "stop",   no_argument,       "Stop the tracer"},
+	{'i', "init",   no_argument,       "Initiate the tracer"},
+	{'h', "help",   no_argument,       "Display this help and exit"}
+};
+
+void populate_long_opts(struct option *long_options) {
+	for (int i=0; i<sizeof(args)/sizeof(struct memo_args); i++) {
+		long_options[i].name = args[i].long_opt;
+		long_options[i].has_arg = args[i].has_arg;
+		long_options[i].flag = 0;
+		long_options[i].val = args[i].option;
+	}
+}
+
+void get_opts_string(char *opt_str) {
+	char opt[2];
+
+	for (int i=0; i<sizeof(args)/sizeof(struct memo_args); i++) {
+		sprintf(opt, "%c", args[i].option);
+		strcat(opt_str, opt);
+		if (args[i].has_arg)
+			strcat(opt_str, ":");
+	}
+}
+
+void help_menu()
+{
+	printf("Usage: memo [OPTION]...\n");
+	printf("Communicate with the FindingMemo hooking framework.\n\n");
+
+	printf("Arguments:\n");
+	for (int i=0; i<sizeof(args)/sizeof(struct memo_args); i++) {
+		if (strlen(args[i].long_opt))
+			printf("  -%c, --%s\t\t%s\n", args[i].option,
+			       args[i].long_opt, args[i].desc);
+		else
+			printf("  -%c\t\t\t%s\n", args[i].option, args[i].desc);
+	}
+	printf("\n");
+}
+
 
 unsigned long get_symbol_addr(char *name)
 {
@@ -102,13 +154,11 @@ int add_hook(char *symbol, int fd)
 
 	printf("+ Add hook\n");
 	if (ioctl(fd, HOOK_ADD, (void *) &finfo) < 0) {
-		printf("err %d\n", __LINE__);
 		_set_err("Error adding hook: %s", strerror(errno));
 	}
 free:
 	return err;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -117,16 +167,34 @@ int main(int argc, char** argv)
 	char symbol[SYM_MAX_LEN];
 	int fd, err = 0, opt;
 	bool symbol_set = false;
-	bool remove_hook = false;
+	bool hook_init = false;
+	bool hook_stop = false;
+	int option_index;
+	struct option long_options[sizeof(args)];
+	char opt_str[OPT_STR_MAX_LEN];
 
-	while ((opt = getopt(argc, argv, "s:r")) != -1) {
+	populate_long_opts(long_options);
+	get_opts_string(opt_str);
+	while (1) {
+		opt = getopt_long(argc, argv, opt_str,
+		                  long_options, &option_index);
+		if (opt == -1)
+			break;
+
 		switch (opt) {
 			case 's':
 				strncpy(symbol, optarg, sizeof(symbol));
 				symbol_set = true;
 				break;
 			case 'r':
-				remove_hook = true;
+				hook_stop = true;
+				break;
+			case 'i':
+				hook_init = true;
+				break;
+			case 'h':
+				help_menu();
+				return 0;
 				break;
 			case '?':
 				return EXIT_FAILURE;
@@ -142,7 +210,7 @@ int main(int argc, char** argv)
 		_exit_err("Error opening the device: %s", strerror(errno));
 	}
 
-	if (remove_hook) {
+	if (hook_stop) {
 		printf("+ Remove Hook\n");
 		if (ioctl(fd, HOOK_STOP) < 0) {
 			_exit_err_free("Hook removal error: %s", strerror(errno));
@@ -150,18 +218,21 @@ int main(int argc, char** argv)
 		goto free;
 	}
 
-	if (!symbol_set) {
-		if (sprintf(symbol, "%s", "load_msg") < 0) {
-			_exit_err_free("Sprintf error");
+	if (hook_init) {
+		printf("+ Init hook\n");
+		if (ioctl(fd, HOOK_INIT) < 0) {
+			_exit_err_free("Error installing hook: %s", strerror(errno));
 		}
+		goto free;
+	}
+
+	if (!symbol_set) {
+		fprintf(stderr, "%s", "Symbol missing\n");
+		goto free;
 	}
 
 	if (add_hook(symbol, fd)) {
 		_exit_err_free(err_info.desc);
-	}
-	printf("+ Install hook\n");
-	if (ioctl(fd, HOOK_INIT) < 0) {
-		_exit_err_free("Error installing hook: %s", strerror(errno));
 	}
 
 free:

@@ -120,14 +120,14 @@ int hook_init()
 		return -EALREADY;
 
 	list_for_each_entry(hook, &fm_hooks, list) {
-		if (!hook->set) {
+		if (!hook->set)
 			continue;
-		}
 		// TODO: review flag
 		err = ftrace_set_filter(&ops, (unsigned char *) hook->name,
 		                        strlen(hook->name), 1);
 		if (err < 0)
 			return err;
+
 	}
 
 	err = register_ftrace_function(&ops);
@@ -153,9 +153,9 @@ int hook_stop()
 		return err;
 
 	list_for_each_entry(hook, &fm_hooks, list) {
-		if (!hook->set) {
+		if (!hook->set)
 			continue;
-		}
+
 		len = snprintf(func, FM_HOOK_NAME_MAX_LEN, "!%s", hook->name);
 		if (len < 0)
 			return len;
