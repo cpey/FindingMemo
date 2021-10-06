@@ -92,31 +92,58 @@ int hook_add(struct finder_info *finfo)
 		return -ENOMSG;
 
 	FM_HOOK_FUNC = (void *) finfo->addr;
+	curr_hook->set = true;
 	atomic_set(&curr_hook->mutex, true);
 	return 0;
 }
 
-int hook_install(FName* fn)
+int hook_remove(struct finder_info *finfo)
+{
+       int err;
+
+       err = set_current_hook(finfo->func.name);
+       if (err < 0)
+               return -ENOMSG;
+
+       curr_hook->set = false;
+       atomic_set(&curr_hook->mutex, false);
+       return 0;
+}
+
+
+int hook_init()
 {
 	int err = 0;
+	struct fm_hook_metadata *hook;
 
 	if (hook_installed)
 		return -EALREADY;
 
-	err = ftrace_set_filter(&ops, fn->name, fn->len, 1);
-	if (err < 0)
-		return err;
+	list_for_each_entry(hook, &fm_hooks, list) {
+		if (!hook->set) {
+			continue;
+		}
+		// TODO: review flag
+		err = ftrace_set_filter(&ops, (unsigned char *) hook->name,
+		                        strlen(hook->name), 1);
+		if (err < 0)
+			return err;
+	}
 
 	err = register_ftrace_function(&ops);
 	if (err < 0)
 		return err;
 
+	hook_installed = true;
 	return 0;
 }
 
-int hook_remove(FName* fn)
+int hook_stop()
 {
 	int err; 
+	int len;
+	char func[FM_HOOK_NAME_MAX_LEN];
+	struct fm_hook_metadata *hook;
 
 	if (!hook_installed)
 		return -EALREADY;
@@ -125,9 +152,19 @@ int hook_remove(FName* fn)
 	if (err)
 		return err;
 
-	err = ftrace_set_filter(&ops, fn->name, fn->len, 0);
-	if (err < 0)
-		return err;
+	list_for_each_entry(hook, &fm_hooks, list) {
+		if (!hook->set) {
+			continue;
+		}
+		len = snprintf(func, FM_HOOK_NAME_MAX_LEN, "!%s", hook->name);
+		if (len < 0)
+			return len;
 
+		err = ftrace_set_filter(&ops, func, len, 0);
+		if (err < 0)
+			return err;
+	}
+
+	hook_installed = false;
 	return 0;
 }

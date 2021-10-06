@@ -34,10 +34,10 @@ struct err_type {
 	char desc[ERR_MAX_LEN];
 };
 
-#define HOOK_IOCTL_NUM 'm'
-#define HOOK_INSTALL _IOW(HOOK_IOCTL_NUM, 0, FName)
-#define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
-#define HOOK_ADD     _IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
+#define HOOK_IOCTL_NUM 	'm'
+#define HOOK_INIT	_IO(HOOK_IOCTL_NUM, 0)
+#define HOOK_STOP	_IO(HOOK_IOCTL_NUM, 1)
+#define HOOK_ADD	_IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
 
 struct err_type err_info;
 
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 
 	if (remove_hook) {
 		printf("+ Remove Hook\n");
-		if (ioctl(fd, HOOK_REMOVE, NULL) < 0) {
+		if (ioctl(fd, HOOK_STOP) < 0) {
 			_exit_err_free("Hook removal error: %s", strerror(errno));
 		}
 		goto free;
@@ -160,7 +160,7 @@ int main(int argc, char** argv)
 		_exit_err_free(err_info.desc);
 	}
 	printf("+ Install hook\n");
-	if (ioctl(fd, HOOK_INSTALL, NULL) < 0) {
+	if (ioctl(fd, HOOK_INIT) < 0) {
 		_exit_err_free("Error installing hook: %s", strerror(errno));
 	}
 

@@ -9,6 +9,8 @@
 #include "tracer.h"
 #include <linux/syscalls.h>
 
+#define FM_HOOK_NAME_MAX_LEN 256
+
 struct fm_hook_metadata {
 	const char *name;
 	void *func;
@@ -16,6 +18,7 @@ struct fm_hook_metadata {
 	const char *rtype;
 	const char **types;
 	const char **args;
+	bool set;
 	atomic_t mutex;
 	struct list_head list;
 };
@@ -72,6 +75,7 @@ extern struct list_head fm_hooks;
 		.rtype	= #srtype, 					\
 		.types 	= x ? types_##sname : NULL,			\
 		.args	= x ? args_##sname : NULL,			\
+		.set 	= false,                                        \
 		.list 	= LIST_HEAD_INIT(__fm_hook_meta_##sname.list),  \
 	};								\
 	static struct fm_hook_metadata __used				\
@@ -82,8 +86,8 @@ extern struct list_head fm_hooks;
 #define FM_HOOK_FUNC		curr_hook->func
 #define FM_HOOK_WRAP		curr_hook->wrap
 
-int hook_install(FName*);
-int hook_remove(FName*);
+int hook_init(void);
+int hook_stop(void);
 int hook_add(struct finder_info *);
-
+int hook_remove(struct finder_info *);
 #endif /* HOOK_H_ */

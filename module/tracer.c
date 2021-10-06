@@ -43,30 +43,25 @@ static ssize_t device_read(struct file *filp, char *buf,
 	return 0;
 }
 
-static int tracer_hook_install(void)
+static int tracer_hook_init(void)
 {
 	int err;
-	FName fn;
 
-	fn.name = "load_msg";
-	fn.len = strlen(fn.name);
-	err = hook_install(&fn);
-	if (err < 0)
-		return err;
-	pr_info("Installed hook\n");
+	err = hook_init();
+	if (!err)
+		pr_info("Function hooking initiated\n");
+
 	return err;
 }
 
-static int tracer_hook_remove(void) 
+static int tracer_hook_stop(void)
 {
 	int err;
-	FName fn;
 
-	fn.name = "!load_msg";
-	fn.len = strlen(fn.name);
-	err = hook_remove(&fn);
+	err = hook_stop();
 	if (!err)
-		pr_info("Removed hook\n");
+		pr_info("Function hooking stopped\n");
+
 	return err;
 }
 
@@ -92,14 +87,14 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 			_tracer_info.hook_initiated = true;
 			break;
 		}
-		case HOOK_INSTALL: {
+		case HOOK_INIT: {
 			int err;
 
 			if (_tracer_info.hook_set) {
 				return -EFAULT;		
 			}
 
-			err = tracer_hook_install();
+			err = tracer_hook_init();
 			if (err < 0) {
 				return err;
 			}
@@ -107,14 +102,14 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 			_tracer_info.hook_set = true;
 			break;
 		}
-		case HOOK_REMOVE: {
+		case HOOK_STOP: {
 			int err;
 
 			if (!_tracer_info.hook_set) {
 				return -EFAULT;		
 			}
 
-			err = tracer_hook_remove();
+			err = tracer_hook_stop();
 			if (err < 0) {
 				return err;
 			}
@@ -223,7 +218,7 @@ static void __exit tracer_exit(void)
 	int ret;
 
 	if (_tracer_info.hook_set) {
-		tracer_hook_remove();
+		tracer_hook_stop();
 		_tracer_info.hook_set = false;
 	}
 	if (_tracer_info.added_hooks_metadata)

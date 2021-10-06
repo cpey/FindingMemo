@@ -16,9 +16,9 @@ struct finder_info {
 	FName func;
 };
 
-#define HOOK_IOCTL_NUM 'm'
-#define HOOK_INSTALL _IOW(HOOK_IOCTL_NUM, 0, FName)
-#define HOOK_REMOVE  _IOW(HOOK_IOCTL_NUM, 1, FName)
-#define HOOK_ADD     _IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
+#define HOOK_IOCTL_NUM 	'm'
+#define HOOK_INIT	_IO(HOOK_IOCTL_NUM, 0)
+#define HOOK_STOP	_IO(HOOK_IOCTL_NUM, 1)
+#define HOOK_ADD     	_IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
 
 #endif /* TRACER_H_ */
