@@ -21,14 +21,14 @@
 #define LINE_MAX_LEN		512
 #define OPT_STR_MAX_LEN		64
 
-typedef struct FUNCTION_NAME {
+struct fname {
 	char *name;
 	int len;
-} FName;
+};
 
 struct finder_info {
 	unsigned long addr;
-	FName func;
+	struct fname func;
 };
 
 struct err_type {
@@ -79,7 +79,7 @@ void get_opts_string(char *opt_str) {
 void help_menu()
 {
 	printf("Usage: memo [OPTION]...\n");
-	printf("Communicate with the FindingMemo hooking framework.\n\n");
+	printf("Instrument the FindingMemo hooking framework.\n\n");
 
 	printf("Arguments:\n");
 	for (int i=0; i<sizeof(args)/sizeof(struct memo_args); i++) {
@@ -151,8 +151,7 @@ int add_hook(char *symbol, int fd)
 	if (!finfo.addr) {
 		_set_err("Symbol %s not found", symbol);
 	}
-
-	printf("+ Add hook\n");
+	printf("Hook added for %s.\n", symbol);
 	if (ioctl(fd, HOOK_ADD, (void *) &finfo) < 0) {
 		_set_err("Error adding hook: %s", strerror(errno));
 	}
@@ -211,18 +210,18 @@ int main(int argc, char** argv)
 	}
 
 	if (hook_stop) {
-		printf("+ Remove Hook\n");
 		if (ioctl(fd, HOOK_STOP) < 0) {
 			_exit_err_free("Hook removal error: %s", strerror(errno));
 		}
+		printf("Linux hooking stopped.\n");
 		goto free;
 	}
 
 	if (hook_init) {
-		printf("+ Init hook\n");
 		if (ioctl(fd, HOOK_INIT) < 0) {
 			_exit_err_free("Error installing hook: %s", strerror(errno));
 		}
+		printf("Linux hooking initiated.\n");
 		goto free;
 	}
 

@@ -6,14 +6,14 @@
 #ifndef TRACER_H_
 #define TRACER_H_
 
-typedef struct FUNCTION_NAME {
+struct fname {
 	char *name;	
 	int len;
-} FName;
+};
 
 struct finder_info {
 	unsigned long addr;
-	FName func;
+	struct fname func;
 };
 
 #define HOOK_IOCTL_NUM 	'm'

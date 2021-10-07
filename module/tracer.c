@@ -17,12 +17,12 @@
 
 DEFINE_MUTEX(finder_mutex);
 
-typedef struct tracer_info {
+struct tracer_info {
 	bool hook_initiated;
 	bool added_hooks_metadata;
-} TRACER_INFO;
+};
 
-struct tracer_info _tracer_info = { false, false, false };
+struct tracer_info _tracer_info = { false, false };
 struct dentry *file;
 
 static int device_open(struct inode *inode, struct file *filp)
@@ -80,8 +80,6 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 			if (_tracer_info.hook_initiated) {
 				return -EFAULT;		
 			}
-
-			err = tracer_hook_init();
 
 			err = hook_init();
 			if (err < 0)
