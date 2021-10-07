@@ -18,7 +18,6 @@
 DEFINE_MUTEX(finder_mutex);
 
 typedef struct tracer_info {
-	bool hook_set;
 	bool hook_initiated;
 	bool added_hooks_metadata;
 } TRACER_INFO;
@@ -41,17 +40,6 @@ static ssize_t device_read(struct file *filp, char *buf,
 	size_t count, loff_t *position)
 {
 	return 0;
-}
-
-static int tracer_hook_init(void)
-{
-	int err;
-
-	err = hook_init();
-	if (!err)
-		pr_info("Function hooking initiated\n");
-
-	return err;
 }
 
 static int tracer_hook_stop(void)
@@ -84,28 +72,29 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 			if (err < 0) {
 				return err;
 			}
-			_tracer_info.hook_initiated = true;
 			break;
 		}
 		case HOOK_INIT: {
 			int err;
 
-			if (_tracer_info.hook_set) {
+			if (_tracer_info.hook_initiated) {
 				return -EFAULT;		
 			}
 
 			err = tracer_hook_init();
-			if (err < 0) {
-				return err;
-			}
 
-			_tracer_info.hook_set = true;
+			err = hook_init();
+			if (err < 0)
+				return err;
+
+			pr_info("Function hooking initiated\n");
+			_tracer_info.hook_initiated = true;
 			break;
 		}
 		case HOOK_STOP: {
 			int err;
 
-			if (!_tracer_info.hook_set) {
+			if (!_tracer_info.hook_initiated) {
 				return -EFAULT;		
 			}
 
@@ -114,7 +103,6 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 				return err;
 			}
 
-			_tracer_info.hook_set = false;
 			_tracer_info.hook_initiated = false;
 			break;
 		}
@@ -217,9 +205,9 @@ static void __exit tracer_exit(void)
 {
 	int ret;
 
-	if (_tracer_info.hook_set) {
+	if (_tracer_info.hook_initiated) {
 		tracer_hook_stop();
-		_tracer_info.hook_set = false;
+		_tracer_info.hook_initiated = false;
 	}
 	if (_tracer_info.added_hooks_metadata)
 		finder_module_remove_hooks();
