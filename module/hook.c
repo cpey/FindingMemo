@@ -26,25 +26,6 @@ static struct ftrace_ops ops __read_mostly = {
 struct fm_hook_metadata *curr_hook;
 static bool hook_installed = false;
 
-FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
-		size_t, len)
-{
-	struct msg_msg *msg;
-	atomic_set(&curr_hook->mutex, false);
-	msg = FM_HOOK_FUNC_PTR(load_msg)(src, len);
-	atomic_set(&curr_hook->mutex, true);
-	pr_info("fmemo: load_msg(): msg addr: %px\n", msg);
-	return msg;
-}
-
-FM_HOOK_FUNC_DEFINE1(free_msg, void, struct msg_msg *, msg)
-{
-	atomic_set(&curr_hook->mutex, false);
-	FM_HOOK_FUNC_PTR(free_msg)(msg);
-	atomic_set(&curr_hook->mutex, true);
-	pr_info("fmemo: free_msg(): msg addr: %px\n", msg);
-}
-
 static bool set_current_hook(char *name)
 {
 	struct fm_hook_metadata *hook;

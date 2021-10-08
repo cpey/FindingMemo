@@ -24,6 +24,7 @@ struct fm_hook_metadata {
 };
 
 extern struct list_head fm_hooks;
+extern struct fm_hook_metadata *curr_hook;
 
 #define for_each_hook(hook, start, end)			\
 	for (hook = start;				\

@@ -1,6 +1,6 @@
 ifneq ($(KERNELRELEASE),)
     obj-m := finder.o
-    finder-objs := tracer.o hook.o
+    finder-objs := tracer.o hook.o impl.o
 else
     KERNELDIR ?= ~/dev/src/linux
     PWD  := $(shell pwd)

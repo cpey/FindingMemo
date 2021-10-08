@@ -1,11 +1,11 @@
-# Finding Memo
+# FindingMemo
 
 Framework for hooking Linux kernel functions. FindingMemo uses ftrace.
 
 ## Steps
 
 1. Apply the patch in linux/add-hooks-metadata-section.patch
-2. Define hooking functions in hook.c
+2. Define hooking functions in *impl.c*
 3. Build the kernel module and instrument with `memo`
 
 ## Function hooks definition
@@ -67,7 +67,6 @@ Linux hooking stopped.
 ```
 
 
-
 ## Example of use
 
 
@@ -88,8 +87,6 @@ Adding the hook defined above for `load_msg` results in the msg address being sh
 ```
 [86931.553933] fmemo: load_msg(): msg addr: ffff888005d42a80
 ```
-
-
 
 
 ## Notes
