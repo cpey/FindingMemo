@@ -91,7 +91,6 @@ int hook_remove(struct finder_info *finfo)
        return 0;
 }
 
-
 int hook_init()
 {
 	int err = 0;
@@ -103,12 +102,10 @@ int hook_init()
 	list_for_each_entry(hook, &fm_hooks, list) {
 		if (!hook->set)
 			continue;
-		// TODO: review flag
 		err = ftrace_set_filter(&ops, (unsigned char *) hook->name,
-		                        strlen(hook->name), 1);
+		                        strlen(hook->name), 0);
 		if (err < 0)
 			return err;
-
 	}
 
 	err = register_ftrace_function(&ops);

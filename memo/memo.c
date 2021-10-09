@@ -50,9 +50,9 @@ struct memo_args {
 };
 
 static struct memo_args args[] = {
-	{'s', "symbol", required_argument, "Symbol to hook"},
-	{'r', "stop",   no_argument,       "Stop the tracer"},
-	{'i', "init",   no_argument,       "Initiate the tracer"},
+	{'a', "add",    required_argument, "Add hook symbol"},
+	{'s', "stop",   no_argument,       "Stop kernel instrumentation"},
+	{'i', "init",   no_argument,       "Initiate kernel instrumentation"},
 	{'h', "help",   no_argument,       "Display this help and exit"}
 };
 
@@ -79,7 +79,7 @@ void get_opts_string(char *opt_str) {
 void help_menu()
 {
 	printf("Usage: memo [OPTION]...\n");
-	printf("Instrument the FindingMemo hooking framework.\n\n");
+	printf("Configuration client to the FindingMemo hooking framework.\n\n");
 
 	printf("Arguments:\n");
 	for (int i=0; i<sizeof(args)/sizeof(struct memo_args); i++) {
@@ -181,11 +181,11 @@ int main(int argc, char** argv)
 			break;
 
 		switch (opt) {
-			case 's':
+			case 'a':
 				strncpy(symbol, optarg, sizeof(symbol));
 				symbol_set = true;
 				break;
-			case 'r':
+			case 's':
 				hook_stop = true;
 				break;
 			case 'i':

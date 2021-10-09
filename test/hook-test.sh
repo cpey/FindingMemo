@@ -1,6 +1,6 @@
 #! /bin/sh
 
-sudo ./memo -s  load_msg
-sudo ./memo -s  sockfd_lookup_light
-sudo ./memo -s  oom_kill_process
+sudo ./memo -a load_msg
+sudo ./memo -a sockfd_lookup_light
+sudo ./memo -a out_of_memory
 sudo ./memo -i

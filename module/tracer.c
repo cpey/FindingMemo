@@ -59,53 +59,53 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 	void __user *argp = (void __user *)arg;
 
 	switch (cmd) {
-		case HOOK_ADD: {
-			struct finder_info finfo;
-			int err;
+	case HOOK_ADD: {
+		struct finder_info finfo;
+		int err;
 
-			if (copy_from_user(&finfo, argp, sizeof(struct finder_info))) {
-				return -EFAULT;
-			}
-
-			pr_info("Address to hook: %lX\n", finfo.addr);
-			err = hook_add(&finfo);
-			if (err < 0) {
-				return err;
-			}
-			break;
+		if (copy_from_user(&finfo, argp, sizeof(struct finder_info))) {
+			return -EFAULT;
 		}
-		case HOOK_INIT: {
-			int err;
 
-			if (_tracer_info.hook_initiated) {
-				return -EFAULT;		
-			}
-
-			err = hook_init();
-			if (err < 0)
-				return err;
-
-			pr_info("Function hooking initiated\n");
-			_tracer_info.hook_initiated = true;
-			break;
+		pr_info("Hooking %lx (%s)\n", finfo.addr, finfo.func.name);
+		err = hook_add(&finfo);
+		if (err < 0) {
+			return err;
 		}
-		case HOOK_STOP: {
-			int err;
+		break;
+	}
+	case HOOK_INIT: {
+		int err;
 
-			if (!_tracer_info.hook_initiated) {
-				return -EFAULT;		
-			}
-
-			err = tracer_hook_stop();
-			if (err < 0) {
-				return err;
-			}
-
-			_tracer_info.hook_initiated = false;
-			break;
+		if (_tracer_info.hook_initiated) {
+			return -EFAULT;
 		}
-		default:
-			return -EINVAL;
+
+		err = hook_init();
+		if (err < 0)
+			return err;
+
+		pr_info("Function hooking initiated\n");
+		_tracer_info.hook_initiated = true;
+		break;
+	}
+	case HOOK_STOP: {
+		int err;
+
+		if (!_tracer_info.hook_initiated) {
+			return -EFAULT;
+		}
+
+		err = tracer_hook_stop();
+		if (err < 0) {
+			return err;
+		}
+
+		_tracer_info.hook_initiated = false;
+		break;
+	}
+	default:
+		return -EINVAL;
 	}
 	return 0;
 }

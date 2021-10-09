@@ -1,12 +1,12 @@
 # FindingMemo
 
-Framework for hooking Linux kernel functions. FindingMemo uses ftrace.
+Framework for dynamically instrumenting the Linux kernel.
 
 ## Steps
 
 1. Apply the patch in linux/add-hooks-metadata-section.patch
 2. Define hooking functions in *impl.c*
-3. Build the kernel module and instrument with `memo`
+3. Build the kernel module and start instrumenting with `memo`
 
 ## Function hooks definition
 
@@ -31,38 +31,38 @@ FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
 
 ## Instrumentation flow
 
-`memo` is the tool used to instrument the hooking framework. Its options are the following:
+`memo` is the FindingMemo client. Its options are the follows:
 
 ```
-test@test:~$ ./memo -h
+test@test:~$ sudo ./memo -h
 Usage: memo [OPTION]...
-Instrument the FindingMemo hooking framework.
+Configuration client to the FindingMemo hooking framework.
 
 Arguments:
-  -s, --symbol          Symbol to hook
-  -r, --stop            Stop the tracer
-  -i, --init            Initiate the tracer
+  -a, --add             Add hook symbol
+  -s, --stop            Stop kernel instrumentation
+  -i, --init            Initiate kernel instrumentation
   -h, --help            Display this help and exit
 ```
 
 1.  Add hook functions
 
 ```
-test@test:~$ sudo ./memo -s load_msg
+test@test:~$ sudo ./memo -a load_msg
 Hook added for load_msg.
 ```
 
-2. Start the hooking instrumentation
+2. Start the kernel dynamic instrumentation
 
 ```
 test@test:~$ sudo ./memo -i
 Linux hooking initiated.
 ```
 
-3. Stop the hooking instrumentation
+3. Stop the kernel dynamic instrumentation
 
 ```
-test@test:~$ sudo ./memo -r
+test@test:~$ sudo ./memo -s
 Linux hooking stopped.
 ```
 
