@@ -9,6 +9,7 @@
 #include <linux/uaccess.h>
 #include <linux/debugfs.h>
 #include <linux/slab.h>
+#include <linux/sysfs.h>
 #include "tracer.h"
 #include "hook.h"
 
@@ -17,6 +18,8 @@
 
 DEFINE_MUTEX(finder_mutex);
 
+static ssize_t tracer_show(struct kobject *, struct kobj_attribute *, char *);
+
 struct tracer_info {
 	bool hook_initiated;
 	bool added_hooks_metadata;
@@ -24,6 +27,8 @@ struct tracer_info {
 
 struct tracer_info _tracer_info = { false, false };
 struct dentry *file;
+struct kobj_attribute tracer_attr = __ATTR(trace-read, S_IRUGO,
+		tracer_show, NULL);
 
 static int device_open(struct inode *inode, struct file *filp)
 {
@@ -186,15 +191,32 @@ static struct notifier_block finder_module_nb = {
 	.notifier_call = finder_module_notify,
 };
 
+static ssize_t tracer_show(struct kobject *kobj,
+			struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", 25);
+}
+
 static int __init tracer_init(void)
 {
 	int ret;
+	struct kobject mod_kobj;
 
 	pr_info("Memory Tracer\n");
 	file = debugfs_create_file(DEVICE_NAME, 0200, NULL, NULL, &my_fops);
+
+	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
+	ret = sysfs_create_file(&mod_kobj, &tracer_attr.attr);
+	if (ret) {
+		pr_warn("Failed to create sysfs file\n");
+		return ret;
+	}
+
 	ret = register_module_notifier(&finder_module_nb);
-	if (ret)
+	if (ret) {
 		pr_warn("Failed to register hook metadata module notifier\n");
+		return ret;
+	}
 
 	return 0;
 }
@@ -202,6 +224,7 @@ static int __init tracer_init(void)
 static void __exit tracer_exit(void)
 {
 	int ret;
+	struct kobject mod_kobj;
 
 	if (_tracer_info.hook_initiated) {
 		tracer_hook_stop();
@@ -210,9 +233,15 @@ static void __exit tracer_exit(void)
 	if (_tracer_info.added_hooks_metadata)
 		finder_module_remove_hooks();
 	ret = unregister_module_notifier(&finder_module_nb);
-	if (ret)
+	if (ret) {
 		pr_warn("Failed to unregister hook metadata module notifier\n");
+	}
+
 	debugfs_remove(file);
+
+	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
+	sysfs_remove_file(&mod_kobj, &tracer_attr.attr);
+
 	pr_info("Unloaded Memory Tracer\n");
 }
 
