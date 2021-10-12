@@ -135,9 +135,21 @@ static int __register_hook(struct fm_hook_metadata *hook)
 	return 0;
 }
 
+static int __register_attr(struct fm_hook_attr *attr)
+{
+	list_add(&attr->list, &fm_attrs);
+	return 0;
+}
+
 static int __remove_hook(struct fm_hook_metadata *hook)
 {
 	list_del(&hook->list);
+	return 0;
+}
+
+static int __remove_attr(struct fm_hook_attr *attr)
+{
+	list_del(&attr->list);
 	return 0;
 }
 
@@ -150,8 +162,22 @@ static void finder_module_add_hooks(struct module *mod)
 	start = mod->finder_hooks;
 	end = mod->finder_hooks + mod->num_finder_hooks;
 
-	for_each_hook(hook, start, end) {
+	for_each_section_elem(hook, start, end) {
 		__register_hook(*hook);
+	}
+}
+
+static void finder_module_add_attrs(struct module *mod)
+{
+	struct fm_hook_attr **attr, **start, **end;
+	if (!mod->num_finder_attrs)
+		return;
+
+	start = mod->finder_attrs;
+	end = mod->finder_attrs + mod->num_finder_attrs;
+
+	for_each_section_elem(attr, start, end) {
+		__register_attr(*attr);
 	}
 }
 
@@ -161,6 +187,15 @@ static void finder_module_remove_hooks(void)
 
 	list_for_each_entry_safe(hook, p, &fm_hooks, list) {
 		__remove_hook(hook);
+	}
+}
+
+static void finder_module_remove_attrs(void)
+{
+	struct fm_hook_attr *attr, *p;
+
+	list_for_each_entry_safe(attr, p, &fm_attrs, list) {
+		__remove_attr(attr);
 	}
 }
 
@@ -175,10 +210,12 @@ static int finder_module_notify(struct notifier_block *self,
 	case MODULE_STATE_LIVE:
 	case MODULE_STATE_COMING:
 		finder_module_add_hooks(mod);
+		finder_module_add_attrs(mod);
 		_tracer_info.added_hooks_metadata = true;
 		break;
 	case MODULE_STATE_GOING:
 		finder_module_remove_hooks();
+		finder_module_remove_attrs();
 		_tracer_info.added_hooks_metadata = false;
 		break;
 	}

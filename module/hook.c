@@ -12,6 +12,7 @@
 #include <linux/slab.h>
 
 LIST_HEAD(fm_hooks);
+LIST_HEAD(fm_attrs);
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs);
@@ -95,6 +96,8 @@ int hook_init()
 {
 	int err = 0;
 	struct fm_hook_metadata *hook;
+	struct fm_hook_attr *sysfs;
+	struct kobject mod_kobj;
 
 	if (hook_installed)
 		return -EALREADY;
@@ -106,6 +109,15 @@ int hook_init()
 		                        strlen(hook->name), 0);
 		if (err < 0)
 			return err;
+	}
+
+	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
+	list_for_each_entry(sysfs, &fm_attrs, list) {
+		err = sysfs_create_file(&mod_kobj, &sysfs->attr->attr);
+		if (err) {
+			pr_warn("Failed to create sysfs file\n");
+			return err;
+		}
 	}
 
 	err = register_ftrace_function(&ops);

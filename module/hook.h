@@ -23,10 +23,17 @@ struct fm_hook_metadata {
 	struct list_head list;
 };
 
+struct fm_hook_attr {
+	const char *name;
+	struct kobj_attribute *attr;
+	struct list_head list;
+};
+
 extern struct list_head fm_hooks;
+extern struct list_head fm_attrs;
 extern struct fm_hook_metadata *curr_hook;
 
-#define for_each_hook(hook, start, end)			\
+#define for_each_section_elem(hook, start, end)		\
 	for (hook = start;				\
 	     (unsigned long)hook < (unsigned long)end;	\
 	     hook++)
@@ -48,7 +55,7 @@ extern struct fm_hook_metadata *curr_hook;
 #define FM_HOOK_FUNC_DEFINEx(x, sname, ...)		\
 	__FM_HOOK_FUNC_DEFINEx(x, sname, __VA_ARGS__)	\
 	__FM_HOOK_WRAP_DECLAREx(x, sname, __VA_ARGS__)	\
-	__FM_HOOK_META_DEFINEx(x, sname, __VA_ARGS__)  	\
+	__FM_HOOK_META_DEFINEx(x, sname, __VA_ARGS__)	\
 	__FM_HOOK_WRAP_DEFINEx(x, sname, __VA_ARGS__)
 
 #define __FM_HOOK_FUNC_DEFINEx(x, name, rtype, ...)			\
@@ -83,9 +90,40 @@ extern struct fm_hook_metadata *curr_hook;
 	__attribute__((section("__fm_hooks_metadata")))			\
 	*__p_fm_hook_meta_##sname = &__fm_hook_meta_##sname;
 
+
+#define FM_HOOK_ATTR_DEFINE(name)					\
+	__FM_HOOK_ATTR_DECLARE(name)					\
+	__FM_HOOK_ATTR_ATTR(name)					\
+	__FM_HOOK_ATTR_META(name)					\
+	__FM_HOOK_ATTR_DEFINE(name)
+
+#define __FM_HOOK_ATTR_DECLARE(sname)					\
+	static ssize_t fm_show_##sname(struct kobject *kobj,		\
+			struct kobj_attribute *attr, char *buf);	\
+
+#define __FM_HOOK_ATTR_ATTR(sname)					\
+	struct kobj_attribute fm_hook_attr_##sname =			\
+		__ATTR(fm_##sname, S_IRUGO, fm_show_##sname, NULL);
+
+#define __FM_HOOK_ATTR_META(sname)					\
+	static struct fm_hook_attr __used				\
+	 __fm_hook_attr_##sname = {					\
+		.name 	= #sname,					\
+		.attr 	= &fm_hook_attr_##sname,			\
+		.list 	= LIST_HEAD_INIT(__fm_hook_attr_##sname.list),	\
+	};								\
+	static struct fm_hook_attr __used				\
+	__attribute__((section("__fm_hooks_attr")))			\
+	*__p_fm_hook_attr_##sname = &__fm_hook_attr_##sname;
+
+#define __FM_HOOK_ATTR_DEFINE(sname)					\
+	static ssize_t fm_show_##sname(struct kobject *kobj,		\
+			struct kobj_attribute *attr, char *buf)
+
 #define FM_HOOK_FUNC_PTR(name)	((type_##name) curr_hook->func)
 #define FM_HOOK_FUNC		curr_hook->func
 #define FM_HOOK_WRAP		curr_hook->wrap
+#define FM_HOOK_ATTR(name)	fm_hook_att_##name
 
 int hook_init(void);
 int hook_stop(void);

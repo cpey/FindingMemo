@@ -6,6 +6,11 @@
 #include "hook.h"
 #include <linux/oom.h>
 
+FM_HOOK_ATTR_DEFINE(load_msg)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", 25);
+}
+
 FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
 		size_t, len)
 {
@@ -35,7 +40,6 @@ FM_HOOK_FUNC_DEFINE3(sockfd_lookup_light, struct socket *, int, fd, int *, err,
 	pr_info("fmemo: sockfd_lookup_light(): sock addr: %px\n", sock);
 	return sock;
 }
-
 
 /* Disable OOM killer */
 
