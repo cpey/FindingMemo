@@ -12,8 +12,11 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 
+#define FM_SYSFS_SHOW_DIR "show"
+
 LIST_HEAD(fm_hooks);
 LIST_HEAD(fm_attrs);
+struct kobject *show_kobj;
 
 static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 	struct ftrace_ops *ops, struct pt_regs *regs);
@@ -42,7 +45,6 @@ static bool set_current_hook(char *name)
 
 	return err;
 }
-
 static bool set_current_hook_ip(unsigned long ip)
 {
 	struct fm_hook_metadata *hook;
@@ -66,31 +68,41 @@ static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 		regs->ip = (unsigned long) FM_HOOK_WRAP;
 }
 
+int create_sysfs_dir()
+{
+	struct kobject mod_kobj;
+
+	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
+	show_kobj = kobject_create_and_add(FM_SYSFS_SHOW_DIR, &mod_kobj);
+	if (!show_kobj) {
+		pr_info("kobject_create_and_add failed\n");
+		return -EINVAL;
+	}
+	return 0;
+}
+
+inline void remove_sysfs_dir()
+{
+	kobject_del(show_kobj);
+}
+
 int hook_add(struct finder_info *finfo)
 {
 	int err;
+	struct fm_hook_attr *sysfs;
 
 	err = set_current_hook(finfo->func.name);
 	if (err < 0)
 		return -ENOMSG;
-
 	FM_HOOK_FUNC = (void *) finfo->addr;
 	curr_hook->set = true;
 	atomic_set(&curr_hook->mutex, true);
+
+	list_for_each_entry(sysfs, &fm_attrs, list) {
+		if (!strncmp(sysfs->name, finfo->func.name, finfo->func.len))
+			sysfs->set = true;
+	}
 	return 0;
-}
-
-int hook_remove(struct finder_info *finfo)
-{
-       int err;
-
-       err = set_current_hook(finfo->func.name);
-       if (err < 0)
-               return -ENOMSG;
-
-       curr_hook->set = false;
-       atomic_set(&curr_hook->mutex, false);
-       return 0;
 }
 
 int hook_init()
@@ -114,7 +126,9 @@ int hook_init()
 
 	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
 	list_for_each_entry(sysfs, &fm_attrs, list) {
-		err = sysfs_create_file(&mod_kobj, &sysfs->attr->attr);
+		if (!sysfs->set)
+			continue;
+		err = sysfs_create_file(show_kobj, &sysfs->attr->attr);
 		if (err) {
 			pr_warn("Failed to create sysfs file\n");
 			return err;
@@ -156,11 +170,14 @@ int hook_stop()
 		err = ftrace_set_filter(&ops, func, len, 0);
 		if (err < 0)
 			return err;
+
+		hook->set = false;
 	}
 
 	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
 	list_for_each_entry(sysfs, &fm_attrs, list) {
-		sysfs_remove_file(&mod_kobj, &sysfs->attr->attr);
+		if (sysfs->set)
+			sysfs_remove_file(show_kobj, &sysfs->attr->attr);
 	}
 
 	hook_installed = false;

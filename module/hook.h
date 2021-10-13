@@ -134,5 +134,6 @@ extern struct list_head fm_attrs;
 int hook_init(void);
 int hook_stop(void);
 int hook_add(struct finder_info *);
-int hook_remove(struct finder_info *);
+int create_sysfs_dir(void);
+void remove_sysfs_dir(void);
 #endif /* HOOK_H_ */

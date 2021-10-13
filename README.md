@@ -8,7 +8,7 @@ Framework for dynamically instrumenting the Linux kernel.
 2. Define hooking functions in *impl.c*
 3. Build the kernel module and start instrumenting with `memo`
 
-## Function hooks definition
+## Function hook definition
 
 Hooks are defined in the hooks.c module. Below is shown an example of a hook for `load_msg` function defined in ipc/msgutil.c:
 
@@ -28,6 +28,8 @@ FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
         return msg;
 }
 ```
+
+## sysfs attribute definition
 
 ## Instrumentation flow
 
