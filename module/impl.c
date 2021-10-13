@@ -41,8 +41,9 @@ FM_HOOK_FUNC_DEFINE3(sockfd_lookup_light, struct socket *, int, fd, int *, err,
 	return sock;
 }
 
-/* Disable OOM killer */
-
+/*
+ * Disable OOM killer
+ */
 FM_HOOK_FUNC_DEFINE2(oom_kill_process, void, struct oom_control *, oc,
 		const char *, message)
 {

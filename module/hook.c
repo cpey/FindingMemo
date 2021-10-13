@@ -10,6 +10,7 @@
 #include <linux/kallsyms.h>
 #include <linux/msg.h>
 #include <linux/slab.h>
+#include <linux/sysfs.h>
 
 LIST_HEAD(fm_hooks);
 LIST_HEAD(fm_attrs);
@@ -134,6 +135,8 @@ int hook_stop()
 	int len;
 	char func[FM_HOOK_NAME_MAX_LEN];
 	struct fm_hook_metadata *hook;
+	struct fm_hook_attr *sysfs;
+	struct kobject mod_kobj;
 
 	if (!hook_installed)
 		return -EALREADY;
@@ -153,6 +156,11 @@ int hook_stop()
 		err = ftrace_set_filter(&ops, func, len, 0);
 		if (err < 0)
 			return err;
+	}
+
+	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
+	list_for_each_entry(sysfs, &fm_attrs, list) {
+		sysfs_remove_file(&mod_kobj, &sysfs->attr->attr);
 	}
 
 	hook_installed = false;

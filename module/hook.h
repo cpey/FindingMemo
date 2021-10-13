@@ -23,14 +23,7 @@ struct fm_hook_metadata {
 	struct list_head list;
 };
 
-struct fm_hook_attr {
-	const char *name;
-	struct kobj_attribute *attr;
-	struct list_head list;
-};
-
 extern struct list_head fm_hooks;
-extern struct list_head fm_attrs;
 extern struct fm_hook_metadata *curr_hook;
 
 #define for_each_section_elem(hook, start, end)		\
@@ -90,6 +83,21 @@ extern struct fm_hook_metadata *curr_hook;
 	__attribute__((section("__fm_hooks_metadata")))			\
 	*__p_fm_hook_meta_##sname = &__fm_hook_meta_##sname;
 
+#define FM_HOOK_FUNC_PTR(name)	((type_##name) curr_hook->func)
+#define FM_HOOK_FUNC		curr_hook->func
+#define FM_HOOK_WRAP		curr_hook->wrap
+
+/*
+ * Sysfs attribute definition
+ */
+struct fm_hook_attr {
+	const char *name;
+	struct kobj_attribute *attr;
+	bool set;
+	struct list_head list;
+};
+
+extern struct list_head fm_attrs;
 
 #define FM_HOOK_ATTR_DEFINE(name)					\
 	__FM_HOOK_ATTR_DECLARE(name)					\
@@ -110,6 +118,7 @@ extern struct fm_hook_metadata *curr_hook;
 	 __fm_hook_attr_##sname = {					\
 		.name 	= #sname,					\
 		.attr 	= &fm_hook_attr_##sname,			\
+		.set 	= false,                                        \
 		.list 	= LIST_HEAD_INIT(__fm_hook_attr_##sname.list),	\
 	};								\
 	static struct fm_hook_attr __used				\
@@ -120,10 +129,7 @@ extern struct fm_hook_metadata *curr_hook;
 	static ssize_t fm_show_##sname(struct kobject *kobj,		\
 			struct kobj_attribute *attr, char *buf)
 
-#define FM_HOOK_FUNC_PTR(name)	((type_##name) curr_hook->func)
-#define FM_HOOK_FUNC		curr_hook->func
-#define FM_HOOK_WRAP		curr_hook->wrap
-#define FM_HOOK_ATTR(name)	fm_hook_att_##name
+#define FM_HOOK_ATTR(name)	fm_hook_attr_##name
 
 int hook_init(void);
 int hook_stop(void);
