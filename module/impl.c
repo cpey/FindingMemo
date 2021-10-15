@@ -6,10 +6,11 @@
 #include "hook.h"
 #include <linux/oom.h>
 
+struct msg_msg *msg;
+
 FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
 		size_t, len)
 {
-	struct msg_msg *msg;
 	atomic_set(&curr_hook->mutex, false);
 	msg = FM_HOOK_FUNC_PTR(load_msg)(src, len);
 	atomic_set(&curr_hook->mutex, true);
@@ -19,7 +20,7 @@ FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
 
 FM_HOOK_ATTR_DEFINE(load_msg)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", 25);
+	return snprintf(buf, PAGE_SIZE, "%px\n", msg);
 }
 
 FM_HOOK_FUNC_DEFINE1(free_msg, void, struct msg_msg *, msg)
