@@ -236,7 +236,7 @@ static int __init tracer_init(void)
 		return ret;
 	}
 
-	ret = create_sysfs_dir();
+	ret = create_sysfs_show_dir();
 	if (ret)
 		return ret;
 
@@ -252,16 +252,17 @@ static void __exit tracer_exit(void)
 		_tracer_info.hook_initiated = false;
 	}
 
-	if (_tracer_info.added_hooks_metadata)
+	if (_tracer_info.added_hooks_metadata) {
 		finder_module_remove_hooks();
-
-	remove_sysfs_dir();
+		finder_module_remove_attrs();
+	}
 
 	ret = unregister_module_notifier(&finder_module_nb);
 	if (ret) {
 		pr_warn("Failed to unregister hook metadata module notifier\n");
 	}
 
+	remove_sysfs_show_dir();
 	debugfs_remove(file);
 	pr_info("Unloaded Memory Tracer\n");
 }

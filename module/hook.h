@@ -94,6 +94,7 @@ struct fm_hook_attr {
 	const char *name;
 	struct kobj_attribute *attr;
 	bool set;
+	bool active;
 	struct list_head list;
 };
 
@@ -118,7 +119,8 @@ extern struct list_head fm_attrs;
 	 __fm_hook_attr_##sname = {					\
 		.name 	= #sname,					\
 		.attr 	= &fm_hook_attr_##sname,			\
-		.set 	= false,                                        \
+		.set 	= false,					\
+		.active = false,					\
 		.list 	= LIST_HEAD_INIT(__fm_hook_attr_##sname.list),	\
 	};								\
 	static struct fm_hook_attr __used				\
@@ -134,6 +136,6 @@ extern struct list_head fm_attrs;
 int hook_init(void);
 int hook_stop(void);
 int hook_add(struct finder_info *);
-int create_sysfs_dir(void);
-void remove_sysfs_dir(void);
+int create_sysfs_show_dir(void);
+void remove_sysfs_show_dir(void);
 #endif /* HOOK_H_ */

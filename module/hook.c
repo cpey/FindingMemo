@@ -68,7 +68,7 @@ static void notrace hook_callback(unsigned long ip, unsigned long parent_ip,
 		regs->ip = (unsigned long) FM_HOOK_WRAP;
 }
 
-int create_sysfs_dir()
+int create_sysfs_show_dir()
 {
 	struct kobject mod_kobj;
 
@@ -78,12 +78,30 @@ int create_sysfs_dir()
 		pr_info("kobject_create_and_add failed\n");
 		return -EINVAL;
 	}
+
 	return 0;
 }
 
-inline void remove_sysfs_dir()
+static inline void remove_sysfs_attrs(void)
 {
-	kobject_del(show_kobj);
+	struct fm_hook_attr *sysfs;
+
+	list_for_each_entry(sysfs, &fm_attrs, list) {
+		if (sysfs->active) {
+			sysfs_remove_file(show_kobj, &sysfs->attr->attr);
+			kobject_put(show_kobj);
+			sysfs->active = false;
+		}
+	}
+}
+
+inline void remove_sysfs_show_dir()
+{
+	if (hook_installed) {
+		remove_sysfs_attrs();
+		hook_installed = false;
+		kobject_put(show_kobj);
+	}
 }
 
 int hook_add(struct finder_info *finfo)
@@ -110,7 +128,6 @@ int hook_init()
 	int err = 0;
 	struct fm_hook_metadata *hook;
 	struct fm_hook_attr *sysfs;
-	struct kobject mod_kobj;
 
 	if (hook_installed)
 		return -EALREADY;
@@ -124,23 +141,28 @@ int hook_init()
 			return err;
 	}
 
-	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
 	list_for_each_entry(sysfs, &fm_attrs, list) {
 		if (!sysfs->set)
 			continue;
 		err = sysfs_create_file(show_kobj, &sysfs->attr->attr);
 		if (err) {
 			pr_warn("Failed to create sysfs file\n");
-			return err;
+			goto err_sysfs;
 		}
+		kobject_get(show_kobj);
+		sysfs->active = true;
 	}
 
 	err = register_ftrace_function(&ops);
 	if (err < 0)
-		return err;
+		goto err_sysfs;
 
 	hook_installed = true;
 	return 0;
+
+err_sysfs:
+	remove_sysfs_attrs();
+	return -EFAULT;
 }
 
 int hook_stop()
@@ -149,8 +171,6 @@ int hook_stop()
 	int len;
 	char func[FM_HOOK_NAME_MAX_LEN];
 	struct fm_hook_metadata *hook;
-	struct fm_hook_attr *sysfs;
-	struct kobject mod_kobj;
 
 	if (!hook_installed)
 		return -EALREADY;
@@ -174,12 +194,7 @@ int hook_stop()
 		hook->set = false;
 	}
 
-	mod_kobj = (((struct module *)(THIS_MODULE))->mkobj).kobj;
-	list_for_each_entry(sysfs, &fm_attrs, list) {
-		if (sysfs->set)
-			sysfs_remove_file(show_kobj, &sysfs->attr->attr);
-	}
-
+	remove_sysfs_attrs();
 	hook_installed = false;
 	return 0;
 }
