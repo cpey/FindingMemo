@@ -32,13 +32,19 @@ FM_HOOK_FUNC_DEFINE2(load_msg, struct msg_msg *, const void __user *, src,
 
 ## sysfs attribute definition
 
-`FM_HOOK_ATTR_DEFINE` macro creates a sysfs attribute file related the hooked function specified, `load_msg` in the example that follows. The file is created in `/sys/module/finder/show/`, with a name that starts with `fm_` and is followed by the name of the function being hooked.
+`FM_HOOK_ATTR_DEFINE` macro creates a read-only sysfs attribute file related the given hooked function, `load_msg` in the example that follows. The file is created in `/sys/module/finder/show/`, with a name that starts with `fm_` and is followed by the name of the function.
 
 ```
 FM_HOOK_ATTR_DEFINE(load_msg)
 {
         return snprintf(buf, PAGE_SIZE, "%px\n", msg);
 }
+```
+
+```
+test@test:~$ ls -l /sys/module/finder/show
+total 0
+-r--r--r-- 1 root root 4096 Oct 15 16:14 fm_load_msg
 ```
 
 ## Instrumentation flow
@@ -82,7 +88,7 @@ Linux hooking stopped.
 ## Example of use
 
 
-A test for the `load_msg` function is found in the test directory.
+A test for the `load_msg` function is included in the test directory.
 
 ```
 test@test:~$ ./msg-queue-test
