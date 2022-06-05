@@ -9,8 +9,8 @@
 #include <linux/uaccess.h>
 #include <linux/debugfs.h>
 #include <linux/slab.h>
-#include "tracer.h"
 #include "hook.h"
+#include "tracer.h"
 
 #define DEVICE_NAME "tracer"
 #define DRV_VERSION "0.1"

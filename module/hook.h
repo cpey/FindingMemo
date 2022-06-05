@@ -6,8 +6,8 @@
 #ifndef HOOK_H_
 #define HOOK_H_
 
-#include "tracer.h"
 #include <linux/syscalls.h>
+#include "tracer.h"
 
 #define FM_HOOK_NAME_MAX_LEN 256
 

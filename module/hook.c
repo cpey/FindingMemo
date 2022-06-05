@@ -3,14 +3,14 @@
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
 
-#include "tracer.h"
-#include "hook.h"
-#include "types.h"
 #include <linux/ftrace.h>
 #include <linux/kallsyms.h>
 #include <linux/msg.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
+#include "tracer.h"
+#include "hook.h"
+#include "types.h"
 
 #define FM_SYSFS_SHOW_DIR "show"
 

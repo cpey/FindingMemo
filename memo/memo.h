@@ -1,13 +1,41 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (C) 2021 Carles Pey <cpey@pm.me>
+ * Copyright (C) 2022 Carles Pey <cpey@pm.me>
  */
 
 #ifndef TEST_H_
 #define TEST_H_
 
-#define ERR_MAX_LEN 256
-#define SYM_MAX_LEN 256
+#include <sys/ioctl.h>
+
+#define DEVICE			"tracer"
+#define DEBUGFS			"/sys/kernel/debug"
+
+#define HOOK_IOCTL_NUM 	'm'
+#define HOOK_INIT	_IO(HOOK_IOCTL_NUM, 0)
+#define HOOK_STOP	_IO(HOOK_IOCTL_NUM, 1)
+#define HOOK_ADD	_IOW(HOOK_IOCTL_NUM, 2, struct finder_info)
+
+#define ERR_MAX_LEN 	256
+#define SYM_MAX_LEN 	256
+#define LINE_MAX_LEN	512
+
+struct fname {
+	char *name;
+	int len;
+};
+
+struct finder_info {
+	unsigned long addr;
+	struct fname func;
+};
+
+struct err_type {
+	int _errno;
+	char desc[ERR_MAX_LEN];
+};
+
+extern struct err_type err_info;
 
 #define _set_err(msg, ...) \
 	do { \
@@ -42,4 +70,3 @@
 typedef enum {false, true} bool;
 
 #endif /* TEST_H_ */
-
