@@ -115,12 +115,15 @@ static int device_release(struct inode *inode, struct file *filp)
 	return 0; 
 }
 
-static const struct file_operations my_fops = {
+static const struct file_operations tracer_fops = {
 	.owner = THIS_MODULE,
 	.open = device_open,
 	.write = device_write,
 	.read = device_read,
 	.unlocked_ioctl = device_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl =  compat_ptr_ioctl,
+#endif /* CONFIG_COMPAT */
 	.release = device_release
 };
 
@@ -228,7 +231,7 @@ static int __init tracer_init(void)
 	int ret;
 
 	pr_info("Memory Tracer\n");
-	file = debugfs_create_file(DEVICE_NAME, 0222, NULL, NULL, &my_fops);
+	file = debugfs_create_file(DEVICE_NAME, 0222, NULL, NULL, &tracer_fops);
 
 	ret = register_module_notifier(&finder_module_nb);
 	if (ret) {

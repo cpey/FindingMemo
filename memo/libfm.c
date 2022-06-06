@@ -57,10 +57,10 @@ static unsigned long get_symbol_addr(char *name)
 	return ret;
 }
 
-static int add_hook(char *symbol, int Fd)
+static int add_hook(char *symbol, int fd)
 {
 	struct finder_info finfo = {0};
-	int fd, err = 0;
+	int err = 0;
 
 	finfo.func.name = symbol;
 	finfo.func.len = strlen(symbol);
