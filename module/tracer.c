@@ -228,7 +228,7 @@ static int __init tracer_init(void)
 	int ret;
 
 	pr_info("Memory Tracer\n");
-	file = debugfs_create_file(DEVICE_NAME, 0200, NULL, NULL, &my_fops);
+	file = debugfs_create_file(DEVICE_NAME, 0222, NULL, NULL, &my_fops);
 
 	ret = register_module_notifier(&finder_module_nb);
 	if (ret) {
