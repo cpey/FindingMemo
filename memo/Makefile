@@ -16,7 +16,7 @@ obj_lib32 = $(patsubst %.c,$(odir32)/%.o,$(src_lib))
 
 .PHONY: clean
 
-all: memo libfm.a
+all: memo lib lib32
 lib: libfm.a
 lib32: libfm32.a
 

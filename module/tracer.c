@@ -3,12 +3,13 @@
  * Copyright (C) 2021 Carles Pey <cpey@pm.me>
  */
 
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/uaccess.h>
+#include <linux/compat.h>
 #include <linux/debugfs.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/slab.h>
+#include <linux/uaccess.h>
 #include "hook.h"
 #include "tracer.h"
 
@@ -59,6 +60,25 @@ static long device_ioctl(struct file *filp, unsigned int cmd,
 	void __user *argp = (void __user *)arg;
 
 	switch (cmd) {
+	case COMPAT_HOOK_ADD: {
+		struct compat_finder_info cfinfo;
+		struct finder_info finfo;
+		int err;
+
+		if (copy_from_user(&cfinfo, argp, sizeof(struct compat_finder_info))) {
+			return -EFAULT;
+		}
+		finfo.addr = cfinfo.addr;
+		finfo.func.name = (char *) compat_ptr(cfinfo.func.name);
+		finfo.func.len = cfinfo.func.len;
+
+		pr_info("Hooking %lx (%s)\n", finfo.addr, (char *) finfo.func.name);
+		err = hook_add(&finfo);
+		if (err < 0) {
+			return err;
+		}
+		break;
+	}
 	case HOOK_ADD: {
 		struct finder_info finfo;
 		int err;
@@ -122,7 +142,7 @@ static const struct file_operations tracer_fops = {
 	.read = device_read,
 	.unlocked_ioctl = device_ioctl,
 #ifdef CONFIG_COMPAT
-	.compat_ioctl =  compat_ptr_ioctl,
+	.compat_ioctl = device_ioctl,
 #endif /* CONFIG_COMPAT */
 	.release = device_release
 };

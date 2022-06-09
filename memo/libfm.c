@@ -68,12 +68,11 @@ static int add_hook(char *symbol, int fd)
 	finfo.addr = get_symbol_addr(symbol);
 	if (!finfo.addr) {
 		return SYMNOTFOUND;
-
 	}
 	if (ioctl(fd, HOOK_ADD, (void *) &finfo) < 0) {
 		return HOOKADDFAIL;
 	}
-out:
+
 	return err;
 }
 
