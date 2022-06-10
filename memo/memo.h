@@ -26,7 +26,11 @@ struct fname {
 };
 
 struct finder_info {
-	unsigned long addr;
+#if X86_32
+	unsigned long addr[2];
+#else
+	unsigned long addr[1];
+#endif
 	struct fname func;
 };
 

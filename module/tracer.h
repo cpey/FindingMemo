@@ -24,7 +24,7 @@ struct compat_fname {
 };
 
 struct compat_finder_info {
-	compat_ulong_t addr;
+	unsigned long addr;
 	struct compat_fname func;
 };
 

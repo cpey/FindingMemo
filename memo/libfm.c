@@ -11,7 +11,7 @@
 #include "memo.h"
 #include "libfm.h"
 
-static unsigned long get_symbol_addr(char *name)
+static unsigned long get_symbol_addr(char *name, unsigned long *addr)
 {
 	FILE *fd;
 	char sname[LINE_MAX_LEN];
@@ -19,7 +19,6 @@ static unsigned long get_symbol_addr(char *name)
 	char *token;
 	int pos;
 	bool found = false;
-	unsigned long addr = 0;
 	int ret = 0;
 
 	fd = fopen("/proc/kallsyms", "r");
@@ -33,7 +32,7 @@ static unsigned long get_symbol_addr(char *name)
 		while (token != NULL) {
 			switch(pos) {
 			case 0:
-				sscanf(token, "%p", (void **) &addr);
+				sscanf(token, "%llx", (void *) addr);
 				break;
 			case 2:
 				sscanf(token, "%s", sname);
@@ -50,30 +49,26 @@ static unsigned long get_symbol_addr(char *name)
 		}
 	}
 
-	if (found) {
-		ret = addr;
-	}
 	fclose(fd);
-	return ret;
+	return found;
 }
 
 static int add_hook(char *symbol, int fd)
 {
 	struct finder_info finfo = {0};
-	int err = 0;
+	int found = 0;
 
 	finfo.func.name = symbol;
 	finfo.func.len = strlen(symbol);
-
-	finfo.addr = get_symbol_addr(symbol);
-	if (!finfo.addr) {
+	found = get_symbol_addr(symbol, finfo.addr);
+	if (!found) {
 		return SYMNOTFOUND;
 	}
 	if (ioctl(fd, HOOK_ADD, (void *) &finfo) < 0) {
 		return HOOKADDFAIL;
 	}
 
-	return err;
+	return 0;
 }
 
 static int open_device() 

@@ -33,7 +33,7 @@ libfm.a: $(obj_lib)
 
 $(obj_lib32): $(src_lib)
 	@-mkdir $(odir32)
-	$(CC) -shared $(CFLAGS) -m32 -c -o $@ $<
+	$(CC) -shared $(CFLAGS) -m32 -c -o $@ $< -DX86_32
 
 libfm32.a: $(obj_lib32)
 	ar rcs $(odir32)/libfm.a $<
